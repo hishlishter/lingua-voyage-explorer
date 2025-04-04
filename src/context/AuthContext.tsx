@@ -12,6 +12,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithTestAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -126,8 +127,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // New function to sign in with a test account
+  const signInWithTestAccount = async () => {
+    try {
+      // Test account credentials
+      const testEmail = "test@example.com";
+      const testPassword = "testpassword123";
+      
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword
+      });
+      
+      if (error) {
+        console.error('Test account login failed:', error);
+        
+        // If login fails, try to create the test account
+        const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+          email: testEmail,
+          password: testPassword
+        });
+        
+        if (signUpError) {
+          toast.error('Не удалось создать тестовый аккаунт', {
+            description: signUpError.message
+          });
+          return;
+        }
+        
+        // Create profile for test user
+        if (signUpData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              { 
+                id: signUpData.user.id, 
+                name: "Тестовый Пользователь",
+                email: testEmail,
+                tests_completed: 3,
+                courses_completed: 2
+              }
+            ]);
+            
+          if (profileError) {
+            console.error('Error creating test profile:', profileError);
+            return;
+          }
+          
+          // Try to log in again after creating the account
+          const { error: loginError } = await supabase.auth.signInWithPassword({
+            email: testEmail,
+            password: testPassword
+          });
+          
+          if (loginError) {
+            toast.error('Не удалось войти с тестовым аккаунтом', {
+              description: loginError.message
+            });
+            return;
+          }
+        }
+      }
+      
+      toast.success('Вход с тестовым аккаунтом выполнен успешно');
+      navigate('/');
+    } catch (error) {
+      console.error('Ошибка при входе с тестовым аккаунтом:', error);
+      toast.error('Произошла ошибка при входе с тестовым аккаунтом');
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      loading, 
+      signIn, 
+      signUp, 
+      signOut,
+      signInWithTestAccount 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -43,8 +43,9 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithTestAccount } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTestLoading, setIsTestLoading] = useState(false);
   
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -80,6 +81,15 @@ const Auth = () => {
       await signUp(values.email, values.password);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleTestAccountLogin = async () => {
+    setIsTestLoading(true);
+    try {
+      await signInWithTestAccount();
+    } finally {
+      setIsTestLoading(false);
     }
   };
 
@@ -148,6 +158,26 @@ const Auth = () => {
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting ? "Вход..." : "Войти"}
                 </Button>
+                
+                {/* Test account button */}
+                <div className="mt-4 relative text-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300"></span>
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="px-2 bg-card text-sm text-gray-500">или</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={handleTestAccountLogin}
+                  disabled={isTestLoading}
+                >
+                  {isTestLoading ? "Вход..." : "Войти с тестовым аккаунтом"}
+                </Button>
               </form>
             </Form>
           ) : (
@@ -215,6 +245,26 @@ const Auth = () => {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Регистрация..." : "Зарегистрироваться"}
+                </Button>
+                
+                {/* Test account button - also available on registration page */}
+                <div className="mt-4 relative text-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300"></span>
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="px-2 bg-card text-sm text-gray-500">или</span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={handleTestAccountLogin}
+                  disabled={isTestLoading}
+                >
+                  {isTestLoading ? "Вход..." : "Войти с тестовым аккаунтом"}
                 </Button>
               </form>
             </Form>
