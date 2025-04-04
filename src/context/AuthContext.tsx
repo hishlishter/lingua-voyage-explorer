@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, checkAuth } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -88,38 +89,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const ensureUserProfile = async (user: User) => {
     try {
+      console.log('Checking for existing profile for user:', user.id);
+      
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
       
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking for profile:', checkError);
-        return;
-      }
+      if (checkError) {
+        console.log('Error or profile not found:', checkError.message);
+        
+        if (checkError.code === 'PGRST116') {
+          console.log('Profile not found, creating new profile for:', user.id);
+          
+          // Create profile with explicit column names
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              { 
+                id: user.id, 
+                name: user.email?.split('@')[0] || 'User', 
+                email: user.email || '',
+                tests_completed: 0,
+                courses_completed: 0
+              }
+            ])
+            .select();
 
-      if (!existingProfile) {
-        console.log('Profile not found, creating new profile for:', user.id);
-        const { error: createError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: user.id, 
-              name: user.email?.split('@')[0] || 'User', 
-              email: user.email || '',
-              tests_completed: 0,
-              courses_completed: 0
+          if (createError) {
+            console.error('Profile creation error:', createError);
+            toast.error('Ошибка создания профиля', {
+              description: createError.message
+            });
+          } else {
+            console.log('Profile created successfully:', newProfile);
+            // Cache the new profile
+            if (newProfile && newProfile[0]) {
+              localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile[0]));
             }
-          ]);
-
-        if (createError) {
-          console.error('Profile creation error:', createError);
-          toast.error('Ошибка создания профиля', {
-            description: createError.message
-          });
+          }
         } else {
-          console.log('Profile created successfully for user:', user.id);
+          console.error('Error checking for profile:', checkError);
+        }
+      } else {
+        console.log('Existing profile found:', existingProfile);
+        // Cache the existing profile
+        if (existingProfile) {
+          localStorage.setItem(`profile_${user.id}`, JSON.stringify(existingProfile));
         }
       }
     } catch (error) {
@@ -201,30 +218,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('User registered successfully:', data.user.id);
       
-      try {
-        const { error: createError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: data.user.id, 
-              name: email.split('@')[0],
-              email: email,
-              tests_completed: 0,
-              courses_completed: 0
-            }
-          ])
-          .select();
-
-        if (createError) {
-          console.error('Profile creation error:', createError);
-          toast.warning('Profile creation issue', {
-            description: 'Your account was created but there was an issue setting up your profile. You can still sign in.'
-          });
-        } else {
-          console.log('Profile created successfully for user:', data.user.id);
-        }
-      } catch (profileError) {
-        console.error('Unexpected profile creation error:', profileError);
+      // Explicitly create profile after registration
+      const profileData = {
+        id: data.user.id,
+        name: email.split('@')[0],
+        email: email,
+        tests_completed: 0,
+        courses_completed: 0
+      };
+      
+      const { error: createError } = await supabase
+        .from('profiles')
+        .insert([profileData]);
+        
+      if (createError) {
+        console.error('Profile creation error during signup:', createError);
+        toast.warning('Profile creation issue', {
+          description: 'Your account was created but there was an issue setting up your profile. You can still sign in.'
+        });
+      } else {
+        console.log('Profile created successfully during signup for user:', data.user.id);
+        // Cache the profile
+        localStorage.setItem(`profile_${data.user.id}`, JSON.stringify(profileData));
       }
       
       toast.success('Registration successful', {

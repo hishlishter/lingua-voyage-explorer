@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -10,7 +9,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Profile } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const UserProfile = () => {
   const { user } = useAuth();
@@ -18,17 +16,24 @@ const UserProfile = () => {
   const [tempAvatarURL, setTempAvatarURL] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [localProfile, setLocalProfile] = useState<Profile | null>(null);
   const queryClient = useQueryClient();
 
-  const fallbackProfile = user ? {
+  const fallbackProfile: Profile = user ? {
     id: user.id,
     name: user.user_metadata?.name || 'Пользователь',
     email: user.email || '',
     tests_completed: 0,
     courses_completed: 0
-  } as Profile : null;
+  } : {
+    id: 'guest',
+    name: 'Гость',
+    email: '',
+    tests_completed: 0,
+    courses_completed: 0
+  };
 
+  const [localProfile, setLocalProfile] = useState<Profile | null>(null);
+  
   useEffect(() => {
     if (user?.id) {
       const cachedProfile = localStorage.getItem(`profile_${user.id}`);
@@ -42,19 +47,14 @@ const UserProfile = () => {
       }
     }
   }, [user?.id]);
-
-  // Use profile data from cache or query directly
-  const { data: profile, isLoading } = useQuery({
+  
+  const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
       if (!user) return null;
       
       try {
-        const cachedProfile = localStorage.getItem(`profile_${user.id}`);
-        if (cachedProfile) {
-          return JSON.parse(cachedProfile) as Profile;
-        }
-        
+        console.log('UserProfile: Fetching profile data');
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -62,36 +62,37 @@ const UserProfile = () => {
           .single();
         
         if (error) {
-          console.error('Ошибка получения профиля:', error);
-          return fallbackProfile;
+          console.error('UserProfile: Error fetching profile:', error);
+          return localProfile || fallbackProfile;
         }
         
         if (data) {
+          console.log('UserProfile: Caching profile data:', data);
           localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
           setLocalProfile(data);
+          return data;
         }
         
-        return data || fallbackProfile;
+        return localProfile || fallbackProfile;
       } catch (e) {
-        console.error('Unexpected error fetching profile:', e);
-        return fallbackProfile;
+        console.error('UserProfile: Unexpected error fetching profile:', e);
+        return localProfile || fallbackProfile;
       }
     },
-    enabled: !!user,
+    enabled: !!user?.id,
     staleTime: 300000,
     placeholderData: localProfile || fallbackProfile,
     refetchOnWindowFocus: false,
-    refetchInterval: false, // Отключаем автоматическое обновление
+    refetchInterval: false,
     retry: 1
   });
 
-  // Mutation for updating avatar
   const updateAvatarMutation = useMutation({
     mutationFn: async (avatarUrl: string) => {
       if (!user) throw new Error('User not authenticated');
       
       const updatedProfile = {
-        ...(localProfile || fallbackProfile),
+        ...(profile || localProfile || fallbackProfile),
         avatar_url: avatarUrl
       };
       setLocalProfile(updatedProfile);
@@ -103,19 +104,15 @@ const UserProfile = () => {
         .eq('id', user.id);
       
       if (error) throw error;
+      return updatedProfile;
     },
-    onSuccess: () => {
+    onSuccess: (updatedProfile) => {
       toast.success('Аватар успешно обновлен');
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
     onError: (error) => {
       toast.error('Ошибка при обновлении аватара');
       console.error('Update avatar error:', error);
-      
-      if (profile) {
-        setLocalProfile(profile);
-        localStorage.setItem(`profile_${user.id}`, JSON.stringify(profile));
-      }
     }
   });
 
@@ -175,7 +172,6 @@ const UserProfile = () => {
       .toUpperCase();
   };
 
-  // Always use available profile data, fallback to local or default
   const profileData = profile || localProfile || fallbackProfile;
 
   if (!user) {
