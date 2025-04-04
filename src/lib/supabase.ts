@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Use the specific Supabase URLs and keys provided in the user configuration
