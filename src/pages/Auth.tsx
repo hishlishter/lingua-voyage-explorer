@@ -40,7 +40,7 @@ const Auth = () => {
           <TabsContent value="signin">
             <LoginForm />
             <div className="mt-4 text-center">
-              <Button variant="ghost" size="sm" onClick={signInWithTestAccount}>
+              <Button variant="outline" size="sm" onClick={signInWithTestAccount} className="w-full">
                 Войти с тестовым аккаунтом
               </Button>
             </div>

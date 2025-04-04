@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, checkAuth, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -25,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(true);
   const navigate = useNavigate();
   const { fetchUserProfile, ensureUserProfile } = useProfile();
 
@@ -41,17 +40,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     }, 10000); // 10 seconds max loading time
-    
-    const initializeSupabase = async () => {
-      try {
-        const isAuthenticated = await checkAuth();
-        console.log('Supabase initialized, authenticated:', isAuthenticated);
-        if (isMounted) setSupabaseInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize Supabase:', error);
-        if (isMounted) setSupabaseInitialized(false);
-      }
-    };
 
     const getInitialSession = async () => {
       try {
@@ -60,7 +48,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error('Error getting session:', error);
-          if (isMounted) setLoading(false);
+          if (isMounted) {
+            setSupabaseInitialized(false);
+            setLoading(false);
+          }
           return;
         }
         
@@ -68,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMounted) {
           setSession(data.session);
           setUser(data.session?.user ?? null);
+          setSupabaseInitialized(true);
         }
         
         if (data.session?.user) {
@@ -86,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (isMounted) {
-          setSupabaseInitialized(true);
           setLoading(false);
         }
       } catch (error) {
@@ -99,10 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Execute initialization sequence
-    (async () => {
-      await initializeSupabase();
-      await getInitialSession();
-    })();
+    getInitialSession();
 
     // Set up auth state change listener
     const { data } = supabase.auth.onAuthStateChange(
@@ -135,11 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (!supabaseInitialized) {
-      toast.error('Cannot sign in - Supabase is not properly configured');
-      return;
-    }
-
     try {
       console.log('Attempting sign in for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({

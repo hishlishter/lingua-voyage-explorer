@@ -5,18 +5,27 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 const LoginForm = () => {
-  const { signIn, signInWithTestAccount } = useAuth();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
     setIsLoading(true);
     try {
       await signIn(email, password);
+    } catch (error) {
+      console.error('Sign in error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -66,9 +75,6 @@ const LoginForm = () => {
           Email: test@example.com <br />
           Пароль: password123
         </div>
-        <Button variant="outline" onClick={signInWithTestAccount} className="w-full">
-          Войти с тестовым аккаунтом
-        </Button>
       </CardFooter>
     </Card>
   );
