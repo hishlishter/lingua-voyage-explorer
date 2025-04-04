@@ -6,16 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useMobileDevice } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onSearch?: () => void;
+  title?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onSearch }) => {
+const Header: React.FC<HeaderProps> = ({ onSearch, title }) => {
   const { user, profile, signOut } = useAuth();
-  const isMobile = useMobileDevice();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   
   const handleSignOut = async () => {
@@ -59,6 +60,11 @@ const Header: React.FC<HeaderProps> = ({ onSearch }) => {
               </div>
             </SheetContent>
           </Sheet>
+        )}
+        
+        {/* Title */}
+        {title && (
+          <h1 className="text-xl font-semibold hidden md:block">{title}</h1>
         )}
         
         {/* Search bar */}
