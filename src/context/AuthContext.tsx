@@ -61,7 +61,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Создаем пользователя в Auth
+      // Validate email format with a more comprehensive regex
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(email)) {
+        toast.error('Ошибка регистрации', {
+          description: 'Пожалуйста, введите корректный email адрес'
+        });
+        return;
+      }
+
+      // Create user in Auth
       const { error, data } = await supabase.auth.signUp({ 
         email, 
         password
@@ -74,14 +83,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Создаем запись в таблице profiles с пустым именем
+      // Create profile record with empty name
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             { 
               id: data.user.id, 
-              name: "",  // Пустое имя, которое будет заполнено позже в настройках
+              name: "",  // Empty name to be filled later in settings
               email: email,
               tests_completed: 0,
               courses_completed: 0
@@ -93,6 +102,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toast.error('Ошибка создания профиля', {
             description: profileError.message
           });
+          
+          // If profile creation fails, try to delete the auth user
+          try {
+            await supabase.auth.admin.deleteUser(data.user.id);
+          } catch (deleteError) {
+            console.error('Failed to delete user after profile creation error:', deleteError);
+          }
+          
+          return;
         }
       }
       

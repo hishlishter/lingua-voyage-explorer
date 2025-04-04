@@ -28,6 +28,7 @@ const loginSchema = z.object({
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
 });
 
+// Modified the registration schema to better validate email
 const registerSchema = z.object({
   email: z.string().email("Введите корректный email"),
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
@@ -51,6 +52,7 @@ const Auth = () => {
       email: "",
       password: "",
     },
+    mode: "onChange", // Added onChange mode for better validation feedback
   });
   
   const registerForm = useForm<RegisterFormValues>({
@@ -60,6 +62,7 @@ const Auth = () => {
       password: "",
       confirmPassword: "",
     },
+    mode: "onChange", // Added onChange mode for better validation feedback
   });
 
   const onLoginSubmit = async (values: LoginFormValues) => {
@@ -112,7 +115,11 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="you@example.com" {...field} />
+                        <Input 
+                          placeholder="you@example.com" 
+                          {...field} 
+                          autoComplete="email"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -126,7 +133,12 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Пароль</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="******" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="******" 
+                          {...field} 
+                          autoComplete="current-password"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -148,7 +160,15 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="you@example.com" autoComplete="email" {...field} />
+                        <Input 
+                          placeholder="you@example.com" 
+                          autoComplete="email" 
+                          {...field} 
+                          onChange={(e) => {
+                            field.onChange(e);
+                            registerForm.trigger("email");
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -162,7 +182,18 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Пароль</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="******" autoComplete="new-password" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="******" 
+                          autoComplete="new-password" 
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            if (registerForm.getValues("confirmPassword")) {
+                              registerForm.trigger("confirmPassword");
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -176,14 +207,27 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Подтвердите пароль</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="******" autoComplete="new-password" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="******" 
+                          autoComplete="new-password" 
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            registerForm.trigger("confirmPassword");
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isSubmitting || !registerForm.formState.isValid}
+                >
                   {isSubmitting ? "Регистрация..." : "Зарегистрироваться"}
                 </Button>
               </form>
