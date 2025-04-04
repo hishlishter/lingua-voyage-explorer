@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { supabase, checkAuth } from '@/lib/supabase';
+import { supabase, createOrUpdateProfile, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   signInWithTestAccount: () => Promise<void>;
   supabaseInitialized: boolean;
+  ensureUserProfile: (user: User) => Promise<Profile | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,126 +22,93 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [supabaseInitialized, setSupabaseInitialized] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeSupabase = async () => {
+    const initializeAuth = async () => {
       try {
-        const isAuthenticated = await checkAuth();
-        setSupabaseInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize Supabase:', error);
-        setSupabaseInitialized(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const getInitialSession = async () => {
-      try {
+        setLoading(true);
+        
+        // Get initial session
         const { data, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
         } else {
           setSession(data.session);
           setUser(data.session?.user ?? null);
-          setSupabaseInitialized(true);
+          
+          // Ensure profile exists for logged in user
+          if (data.session?.user) {
+            await ensureUserProfile(data.session.user);
+          }
         }
+        
+        setSupabaseInitialized(true);
       } catch (error) {
-        console.error('Unexpected error getting session:', error);
+        console.error('Unexpected error during initialization:', error);
         setSupabaseInitialized(true);
       } finally {
         setLoading(false);
       }
     };
 
-    initializeSupabase();
-    getInitialSession();
+    initializeAuth();
 
-    let subscription: { unsubscribe: () => void } | null = null;
-    
-    try {
-      const { data } = supabase.auth.onAuthStateChange(
-        async (_event, session) => {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            await ensureUserProfile(session.user);
-          }
-          
-          setLoading(false);
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        console.log('Auth state changed:', _event, session?.user?.id);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Ensure profile exists when user signs in
+        if (session?.user) {
+          await ensureUserProfile(session.user);
         }
-      );
-      
-      subscription = data.subscription;
-    } catch (error) {
-      console.error('Error setting up auth state change listener:', error);
-    }
+      }
+    );
 
     return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, []);
 
-  const ensureUserProfile = async (user: User) => {
+  const ensureUserProfile = async (user: User): Promise<Profile | null> => {
+    if (!user) return null;
+    
     try {
-      console.log('Checking for existing profile for user:', user.id);
+      console.log('Ensuring profile exists for user:', user.id);
       
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // Create profile data
+      const profileData: Profile = {
+        id: user.id,
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        email: user.email || '',
+        tests_completed: 0,
+        courses_completed: 0
+      };
       
-      if (checkError) {
-        console.log('Error or profile not found:', checkError.message);
-        
-        if (checkError.code === 'PGRST116') {
-          console.log('Profile not found, creating new profile for:', user.id);
-          
-          // Create profile with explicit column names
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert([
-              { 
-                id: user.id, 
-                name: user.email?.split('@')[0] || 'User', 
-                email: user.email || '',
-                tests_completed: 0,
-                courses_completed: 0
-              }
-            ])
-            .select();
-
-          if (createError) {
-            console.error('Profile creation error:', createError);
-            toast.error('Ошибка создания профиля', {
-              description: createError.message
-            });
-          } else {
-            console.log('Profile created successfully:', newProfile);
-            // Cache the new profile
-            if (newProfile && newProfile[0]) {
-              localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile[0]));
-            }
-          }
-        } else {
-          console.error('Error checking for profile:', checkError);
-        }
-      } else {
-        console.log('Existing profile found:', existingProfile);
-        // Cache the existing profile
-        if (existingProfile) {
-          localStorage.setItem(`profile_${user.id}`, JSON.stringify(existingProfile));
-        }
+      // Try to create or update profile
+      const { success, data, error } = await createOrUpdateProfile(profileData);
+      
+      if (!success) {
+        console.error('Failed to ensure user profile:', error);
+        toast.error('Ошибка создания профиля', {
+          description: error?.message || 'Неизвестная ошибка'
+        });
+        return null;
       }
+      
+      if (data) {
+        return data as Profile;
+      }
+      
+      return profileData;
     } catch (error) {
       console.error('Unexpected error in ensureUserProfile:', error);
+      return null;
     }
   };
 
@@ -155,7 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      setLoading(true);
       console.log('Attempting sign in for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -171,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Sign in successful for user:', data.user?.id);
       
+      // Ensure profile exists
       if (data.user) {
         await ensureUserProfile(data.user);
       }
@@ -180,6 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Unexpected sign in error:', error);
       toast.error('An error occurred during sign in');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -190,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      setLoading(true);
       console.log('Attempting registration for:', email);
       
       const { data, error } = await supabase.auth.signUp({
@@ -218,28 +192,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('User registered successfully:', data.user.id);
       
-      // Explicitly create profile after registration
-      const profileData = {
-        id: data.user.id,
-        name: email.split('@')[0],
-        email: email,
-        tests_completed: 0,
-        courses_completed: 0
-      };
+      // Create profile immediately after registration
+      const profile = await ensureUserProfile(data.user);
       
-      const { error: createError } = await supabase
-        .from('profiles')
-        .insert([profileData]);
-        
-      if (createError) {
-        console.error('Profile creation error during signup:', createError);
-        toast.warning('Profile creation issue', {
-          description: 'Your account was created but there was an issue setting up your profile. You can still sign in.'
-        });
-      } else {
-        console.log('Profile created successfully during signup for user:', data.user.id);
-        // Cache the profile
-        localStorage.setItem(`profile_${data.user.id}`, JSON.stringify(profileData));
+      if (profile) {
+        console.log('Profile created successfully during signup');
       }
       
       toast.success('Registration successful', {
@@ -249,13 +206,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Unexpected registration error:', error);
       toast.error('An error occurred during registration');
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setUser(null);
-      setSession(null);
+      setLoading(true);
       
       if (user?.id) {
         localStorage.removeItem(`profile_${user.id}`);
@@ -272,16 +230,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       
+      setUser(null);
+      setSession(null);
+      
       toast.success('Signed out successfully');
       navigate('/auth');
     } catch (error) {
       console.error('Unexpected sign out error:', error);
       toast.error('An error occurred during sign out');
+    } finally {
+      setLoading(false);
     }
   };
 
   const signInWithTestAccount = async () => {
     try {
+      setLoading(true);
       console.log("Signing in with test account...");
       
       const testUser = {
@@ -315,11 +279,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setSession(mockSession);
       
+      // Create test profile
+      const testProfile: Profile = {
+        id: testUser.id,
+        name: 'Test User',
+        email: 'test@example.com',
+        tests_completed: 5,
+        courses_completed: 3
+      };
+      
+      localStorage.setItem(`profile_${testUser.id}`, JSON.stringify(testProfile));
+      
       toast.success('Signed in with test account');
       navigate('/');
     } catch (error) {
       console.error('Test account sign in error:', error);
       toast.error('Error signing in with test account');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -332,7 +309,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signUp, 
       signOut,
       signInWithTestAccount,
-      supabaseInitialized
+      supabaseInitialized,
+      ensureUserProfile
     }}>
       {children}
     </AuthContext.Provider>

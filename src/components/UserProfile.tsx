@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase, Profile } from '@/lib/supabase';
+import { supabase, Profile, createOrUpdateProfile } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const UserProfile = () => {
-  const { user } = useAuth();
+  const { user, ensureUserProfile } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempAvatarURL, setTempAvatarURL] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -66,29 +66,10 @@ const UserProfile = () => {
         if (error) {
           console.error('UserProfile: Error fetching profile:', error);
           
-          // If profile doesn't exist, try to create one
+          // If profile doesn't exist, create it using the auth context helper
           if (error.code === 'PGRST116') {
             console.log('UserProfile: Profile not found, attempting to create');
-            const newProfile: Profile = {
-              id: user.id,
-              name: user.user_metadata?.name || 'Пользователь',
-              email: user.email || '',
-              tests_completed: 0,
-              courses_completed: 0
-            };
-            
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert([newProfile]);
-              
-            if (insertError) {
-              console.error('UserProfile: Error creating profile:', insertError);
-              return localProfile || fallbackProfile;
-            }
-            
-            console.log('UserProfile: Profile created successfully');
-            localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
-            return newProfile;
+            return ensureUserProfile(user);
           }
           
           return localProfile || fallbackProfile;
@@ -119,6 +100,7 @@ const UserProfile = () => {
     mutationFn: async (avatarUrl: string) => {
       if (!user) throw new Error('User not authenticated');
       
+      // Update local cache first for faster UI updates
       const updatedProfile = {
         ...(profile || localProfile || fallbackProfile),
         avatar_url: avatarUrl
@@ -126,15 +108,10 @@ const UserProfile = () => {
       setLocalProfile(updatedProfile);
       localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
       
-      const { error } = await supabase
-        .from('profiles')
-        .update({ avatar_url: avatarUrl })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      return updatedProfile;
+      // Update profile in database
+      return createOrUpdateProfile(updatedProfile);
     },
-    onSuccess: (updatedProfile) => {
+    onSuccess: () => {
       toast.success('Аватар успешно обновлен');
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },

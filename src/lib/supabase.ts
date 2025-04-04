@@ -26,9 +26,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Enhanced debugging insert helper function
-export const debugInsertProfile = async (profile: Profile): Promise<{success: boolean, error?: any, data?: any}> => {
+export const createOrUpdateProfile = async (profile: Profile): Promise<{success: boolean, error?: any, data?: any}> => {
   try {
-    console.log('Attempting to insert profile:', profile);
+    console.log('Attempting to create or update profile:', profile);
     
     // Ensure all required fields are present
     if (!profile.id) {
@@ -46,29 +46,63 @@ export const debugInsertProfile = async (profile: Profile): Promise<{success: bo
       return { success: false, error: 'Profile email is required' };
     }
     
-    // Insert with explicit column names to avoid potential SQL issues
-    const { data, error } = await supabase
+    // Check if profile exists
+    const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
-      .insert([{
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        tests_completed: profile.tests_completed || 0,
-        courses_completed: profile.courses_completed || 0,
-        avatar_url: profile.avatar_url || null
-      }])
-      .select()
-      .single();
+      .select('id')
+      .eq('id', profile.id)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking if profile exists:', checkError);
+      return { success: false, error: checkError };
+    }
+    
+    let result;
+    
+    if (existingProfile) {
+      console.log('Profile exists, updating:', profile.id);
+      // Update existing profile
+      result = await supabase
+        .from('profiles')
+        .update({
+          name: profile.name,
+          email: profile.email,
+          tests_completed: profile.tests_completed || 0,
+          courses_completed: profile.courses_completed || 0,
+          avatar_url: profile.avatar_url || null
+        })
+        .eq('id', profile.id)
+        .select();
+    } else {
+      console.log('Profile does not exist, creating new profile for:', profile.id);
+      // Insert new profile
+      result = await supabase
+        .from('profiles')
+        .insert([{
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          tests_completed: profile.tests_completed || 0,
+          courses_completed: profile.courses_completed || 0,
+          avatar_url: profile.avatar_url || null
+        }])
+        .select();
+    }
+    
+    const { data, error } = result;
     
     if (error) {
-      console.error('Insert profile error:', error);
+      console.error('Profile operation error:', error);
       return { success: false, error };
     }
     
-    console.log('Profile inserted successfully:', data);
-    return { success: true, data };
+    console.log('Profile operation successful:', data);
+    // Cache the profile data
+    localStorage.setItem(`profile_${profile.id}`, JSON.stringify(data[0]));
+    return { success: true, data: data[0] };
   } catch (err) {
-    console.error('Unexpected error during profile insert:', err);
+    console.error('Unexpected error during profile operation:', err);
     return { success: false, error: err };
   }
 };

@@ -1,7 +1,7 @@
 
 import React, { Suspense } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase, Profile } from '@/lib/supabase';
+import { supabase, Profile, createOrUpdateProfile } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
@@ -9,7 +9,7 @@ import ProfileLoadingStates from '@/components/ProfileLoadingStates';
 import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, ensureUserProfile } = useAuth();
   const queryClient = useQueryClient();
   
   // Create fallback profile for immediate display
@@ -41,7 +41,7 @@ const Index = () => {
       if (!user?.id) return null;
       
       try {
-        console.log('Fetching profile for user:', user.id);
+        console.log('Index: Fetching profile for user:', user.id);
         
         const { data, error } = await supabase
           .from('profiles')
@@ -50,52 +50,27 @@ const Index = () => {
           .single();
         
         if (error) {
-          console.error('Error fetching profile:', error);
+          console.error('Index: Error fetching profile:', error);
           
-          // If profile doesn't exist, create one
+          // If profile doesn't exist, create one using the helper from AuthContext
           if (error.code === 'PGRST116') {
-            console.log('Profile not found, creating new profile');
-            
-            const newProfile: Profile = {
-              id: user.id,
-              name: user.user_metadata?.name || 'Пользователь',
-              email: user.email || '',
-              tests_completed: 0,
-              courses_completed: 0
-            };
-            
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert([newProfile]);
-              
-            if (insertError) {
-              console.error('Error creating profile:', insertError);
-              return cachedProfile || fallbackProfile;
-            }
-            
-            console.log('Profile created successfully');
-            localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
-            
-            // Invalidate and refetch to ensure UI consistency
-            queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
-            
-            return newProfile;
+            console.log('Index: Profile not found, creating new profile');
+            return ensureUserProfile(user);
           }
           
-          // Return best available data
+          // Return cached profile if available, or fallback
           return cachedProfile || fallbackProfile;
         }
         
-        // Cache the profile data
         if (data) {
-          console.log('Caching profile data:', data);
+          console.log('Index: Caching profile data:', data);
           localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
           return data;
         }
         
         return cachedProfile || fallbackProfile;
       } catch (error) {
-        console.error('Error in query function:', error);
+        console.error('Index: Error in query function:', error);
         return cachedProfile || fallbackProfile;
       }
     },
@@ -107,12 +82,20 @@ const Index = () => {
     refetchInterval: false
   });
 
-  const handleRetry = () => {
-    // Clear cache when retrying
-    if (user?.id) {
-      localStorage.removeItem(`profile_${user.id}`);
+  const handleRetry = async () => {
+    if (!user) return;
+    
+    try {
+      // Try to create profile with ensureUserProfile
+      const newProfile = await ensureUserProfile(user);
+      
+      if (newProfile) {
+        queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+        refetch();
+      }
+    } catch (error) {
+      console.error('Error in retry handler:', error);
     }
-    refetch();
   };
 
   // Always use the best available profile data
@@ -128,7 +111,7 @@ const Index = () => {
         <div className="flex-1 p-6">
           <div className="max-w-5xl mx-auto space-y-8">
             <ProfileLoadingStates
-              isLoading={false}
+              isLoading={isLoading}
               isError={isError}
               user={user}
               profile={profileData}
