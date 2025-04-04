@@ -50,6 +50,9 @@ BEGIN
     DECLARE test_user_id UUID;
     SELECT id INTO test_user_id FROM auth.users WHERE email = 'test@example.com';
     
+    -- Temporarily disable RLS to ensure we can create the profile
+    ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+    
     -- Create profile for test user if it doesn't exist
     IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = test_user_id) THEN
       INSERT INTO public.profiles (
@@ -68,5 +71,8 @@ BEGIN
         NOW()
       );
     END IF;
+    
+    -- Re-enable RLS
+    ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
   END IF;
 END $$;

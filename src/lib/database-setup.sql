@@ -24,6 +24,11 @@ CREATE POLICY "Пользователи могут обновлять свой �
   ON profiles FOR UPDATE 
   USING (auth.uid() = id);
 
+-- Новая политика: разрешаем вставку профилей при регистрации
+CREATE POLICY "Разрешаем вставку новых профилей" 
+  ON profiles FOR INSERT 
+  WITH CHECK (auth.uid() = id);
+
 -- Таблица тестов
 CREATE TABLE IF NOT EXISTS tests (
   id SERIAL PRIMARY KEY,
