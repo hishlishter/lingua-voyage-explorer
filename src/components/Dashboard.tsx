@@ -3,7 +3,6 @@ import React from 'react';
 import UserProfile from '@/components/UserProfile';
 import ProgressChart from '@/components/ProgressChart';
 import QuickActions from '@/components/QuickActions';
-import WordSets from '@/components/WordSets';
 import { Profile } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -25,8 +24,6 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
         />
         <QuickActions />
       </div>
-      
-      <WordSets title="Словарные наборы" />
     </>
   );
 };
