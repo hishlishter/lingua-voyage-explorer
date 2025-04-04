@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Default development values (these will be used if no env variables are set)
@@ -27,6 +26,7 @@ export type Profile = {
   email: string;
   tests_completed: number;
   courses_completed: number;
+  avatar_url?: string;
   created_at?: string;
 };
 
