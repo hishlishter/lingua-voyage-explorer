@@ -91,7 +91,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
                 dataKey="name" 
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#888' }}
+                tick={{ fontSize: 10, fill: '#888' }}
               />
               <YAxis hide />
               <Tooltip content={<CustomTooltip />} />

@@ -17,10 +17,8 @@ const Sidebar = () => {
         <Link to="/" className="flex flex-col items-center">
           <div className="relative">
             <h1 className="text-4xl font-display font-bold mb-1">Margo</h1>
-            <span className="absolute -top-4 -left-6 text-xl">🍌</span>
-            <span className="absolute -top-4 -right-6 text-xl">🍌</span>
-            <span className="absolute -bottom-2 -left-6 text-xl">—</span>
-            <span className="absolute -bottom-2 -right-6 text-xl">—</span>
+            <span className="absolute -top-4 -left-6 text-xl">🌸</span>
+            <span className="absolute -top-4 -right-6 text-xl">🌸</span>
           </div>
         </Link>
       </div>
