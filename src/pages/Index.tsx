@@ -36,8 +36,11 @@ const Index = () => {
     },
     enabled: !!user?.id,
     retry: 1,
-    staleTime: 30000, // Кэшируем данные на 30 секунд
-    refetchOnWindowFocus: false, // Отключаем повторную загрузку при фокусе окна
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+    // Добавим настройки для пропуска загрузочных экранов
+    initialData: user?.id ? null : undefined,
+    placeholderData: prev => prev,
   });
 
   const handleRetry = () => {
@@ -54,16 +57,22 @@ const Index = () => {
         <div className="flex-1 p-6">
           <div className="max-w-5xl mx-auto space-y-8">
             <ProfileLoadingStates
-              isLoading={isLoading}
+              isLoading={false} // Всегда отключаем загрузочное состояние
               isError={isError}
               user={user}
               profile={profile}
               onRetry={handleRetry}
             />
             
-            {!isLoading && profile && (
+            {user && (
               <Suspense fallback={null}>
-                <Dashboard profile={profile} />
+                <Dashboard profile={profile || {
+                  id: user.id,
+                  name: user.user_metadata?.name || 'Пользователь',
+                  email: user.email || '',
+                  tests_completed: 0,
+                  courses_completed: 0
+                } as Profile} />
               </Suspense>
             )}
           </div>

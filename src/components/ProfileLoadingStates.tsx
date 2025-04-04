@@ -28,47 +28,6 @@ const ProfileLoadingStates: React.FC<ProfileLoadingStatesProps> = ({
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="grid gap-6">
-        {/* Скелетон для профиля пользователя */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
-          <Skeleton className="h-24 w-24 rounded-full" />
-          <Skeleton className="h-6 w-32 mt-4" />
-          <Skeleton className="h-4 w-48 mt-2" />
-          
-          <div className="w-full mt-6 grid grid-cols-2 gap-4 text-center">
-            <div className="py-3 px-2">
-              <Skeleton className="h-4 w-24 mb-2 mx-auto" />
-              <Skeleton className="h-8 w-12 mx-auto" />
-            </div>
-            <div className="py-3 px-2">
-              <Skeleton className="h-4 w-24 mb-2 mx-auto" />
-              <Skeleton className="h-8 w-12 mx-auto" />
-            </div>
-          </div>
-        </div>
-        
-        {/* Скелетон для графика прогресса */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <Skeleton className="h-6 w-48 mb-4" />
-            <Skeleton className="h-40 w-full" />
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm">
-            <Skeleton className="h-6 w-48 mb-4" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <div className="text-center py-12 bg-white rounded-2xl p-6 shadow-sm">

@@ -14,23 +14,28 @@ import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import TestDetail from "./pages/TestDetail";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 30000,
+    },
+  },
+});
 
-// Модифицированный защищенный маршрут, который позволяет неаутентифицированным пользователям
+// Модифицированный защищенный маршрут, который не показывает загрузку
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { loading } = useAuth();
   
-  if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
-  
-  // Без редиректа, просто рендерим дочерние компоненты
+  // Всегда отображаем контент без загрузки
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   
-  if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
-  
+  // Пропускаем экран загрузки
   return (
     <Routes>
       <Route path="/" element={<Index />} />
