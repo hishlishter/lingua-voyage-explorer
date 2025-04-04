@@ -27,6 +27,13 @@ const Index = () => {
       
       try {
         console.log('Fetching profile for user:', user.id);
+        // Используем кеш-первую стратегию
+        const cachedProfile = localStorage.getItem(`profile_${user.id}`);
+        if (cachedProfile) {
+          console.log('Using cached profile data');
+          return JSON.parse(cachedProfile) as Profile;
+        }
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -38,6 +45,11 @@ const Index = () => {
           throw error;
         }
         
+        // Кешируем данные профиля в localStorage
+        if (data) {
+          localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
+        }
+        
         return data;
       } catch (error) {
         console.error('Error in query function:', error);
@@ -46,12 +58,16 @@ const Index = () => {
     },
     enabled: !!user?.id,
     retry: 1,
-    staleTime: 60000, // Увеличиваем время кэширования до 1 минуты
+    staleTime: 300000, // Увеличиваем время кеширования до 5 минут
     refetchOnWindowFocus: false,
     placeholderData: fallbackProfile, // Используем заглушку немедленно
   });
 
   const handleRetry = () => {
+    // Очищаем кеш при повторной попытке
+    if (user?.id) {
+      localStorage.removeItem(`profile_${user.id}`);
+    }
     refetch();
   };
 

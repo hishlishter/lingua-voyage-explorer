@@ -30,11 +30,12 @@ const ProfileLoadingStates: React.FC<ProfileLoadingStatesProps> = ({
 
   if (isError) {
     return (
-      <div className="text-center py-12 bg-white rounded-2xl p-6 shadow-sm">
+      <div className="text-center py-8 bg-white rounded-2xl p-6 shadow-sm">
         <p className="text-destructive mb-4">Произошла ошибка при загрузке профиля</p>
         <Button 
           onClick={onRetry}
           className="flex items-center gap-2"
+          variant="destructive"
         >
           <RefreshCcw size={16} />
           Попробовать снова
@@ -45,7 +46,7 @@ const ProfileLoadingStates: React.FC<ProfileLoadingStatesProps> = ({
 
   if (!profile) {
     return (
-      <div className="text-center py-12 bg-white rounded-2xl p-6 shadow-sm">
+      <div className="text-center py-8 bg-white rounded-2xl p-6 shadow-sm">
         <p className="mb-4">Профиль не найден. Пожалуйста, создайте новый профиль.</p>
       </div>
     );

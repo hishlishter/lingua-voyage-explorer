@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -17,6 +17,7 @@ const UserProfile = () => {
   const [tempAvatarURL, setTempAvatarURL] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [localProfile, setLocalProfile] = useState<Profile | null>(null);
   const queryClient = useQueryClient();
 
   const fallbackProfile = user ? {
@@ -27,33 +28,70 @@ const UserProfile = () => {
     courses_completed: 0
   } as Profile : null;
 
+  useEffect(() => {
+    if (user?.id) {
+      const cachedProfile = localStorage.getItem(`profile_${user.id}`);
+      if (cachedProfile) {
+        try {
+          const parsed = JSON.parse(cachedProfile) as Profile;
+          setLocalProfile(parsed);
+        } catch (e) {
+          console.error('Error parsing cached profile:', e);
+        }
+      }
+    }
+  }, [user?.id]);
+
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
       if (!user) return null;
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) {
-        console.error('Ошибка получения профиля:', error);
+      try {
+        const cachedProfile = localStorage.getItem(`profile_${user.id}`);
+        if (cachedProfile) {
+          console.log('Using cached profile in UserProfile');
+          return JSON.parse(cachedProfile) as Profile;
+        }
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Ошибка получения профиля:', error);
+          return null;
+        }
+        
+        if (data) {
+          localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
+          setLocalProfile(data);
+        }
+        
+        return data;
+      } catch (e) {
+        console.error('Unexpected error fetching profile:', e);
         return null;
       }
-      
-      return data;
     },
     enabled: !!user,
-    staleTime: 60000,
-    placeholderData: fallbackProfile,
+    staleTime: 300000,
+    placeholderData: localProfile || fallbackProfile,
     refetchOnWindowFocus: false
   });
 
   const updateAvatarMutation = useMutation({
     mutationFn: async (avatarUrl: string) => {
       if (!user) throw new Error('User not authenticated');
+      
+      const updatedProfile = {
+        ...(localProfile || fallbackProfile),
+        avatar_url: avatarUrl
+      };
+      setLocalProfile(updatedProfile);
+      localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
       
       const { error } = await supabase
         .from('profiles')
@@ -69,6 +107,11 @@ const UserProfile = () => {
     onError: (error) => {
       toast.error('Ошибка при обновлении аватара');
       console.error('Update avatar error:', error);
+      
+      if (profile) {
+        setLocalProfile(profile);
+        localStorage.setItem(`profile_${user.id}`, JSON.stringify(profile));
+      }
     }
   });
 
@@ -128,7 +171,7 @@ const UserProfile = () => {
       .toUpperCase();
   };
 
-  const profileData = profile || fallbackProfile;
+  const profileData = localProfile || profile || fallbackProfile;
 
   if (!user) {
     return (
@@ -181,39 +224,23 @@ const UserProfile = () => {
       </Dialog>
       
       <h3 className="mt-4 text-xl font-semibold">
-        {isLoading ? (
-          <Skeleton className="h-7 w-32" />
-        ) : (
-          profileData.name
-        )}
+        {profileData.name}
       </h3>
       <p className="text-muted-foreground text-sm">
-        {isLoading ? (
-          <Skeleton className="h-4 w-48" />
-        ) : (
-          profileData.email
-        )}
+        {profileData.email}
       </p>
       
       <div className="w-full mt-6 grid grid-cols-2 gap-4 text-center">
         <div className="py-3 px-2">
           <p className="text-muted-foreground text-sm">Пройдено тестов</p>
           <p className="text-3xl font-bold">
-            {isLoading ? (
-              <Skeleton className="h-10 w-10 mx-auto" />
-            ) : (
-              profileData.tests_completed || 0
-            )}
+            {profileData.tests_completed || 0}
           </p>
         </div>
         <div className="py-3 px-2 border-l border-gray-200">
           <p className="text-muted-foreground text-sm">Пройдено курсов</p>
           <p className="text-3xl font-bold">
-            {isLoading ? (
-              <Skeleton className="h-10 w-10 mx-auto" />
-            ) : (
-              profileData.courses_completed || 0
-            )}
+            {profileData.courses_completed || 0}
           </p>
         </div>
       </div>
