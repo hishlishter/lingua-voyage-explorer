@@ -2,12 +2,11 @@
 import React from 'react';
 import { Bell, Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   onSearch?: () => void;
@@ -18,6 +17,8 @@ const Header: React.FC<HeaderProps> = ({ onSearch, title }) => {
   const { user, profile, signOut } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  
+  console.log("Header rendering - user:", user?.id, "profile:", profile?.name);
   
   const handleSignOut = async () => {
     await signOut();

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,41 +15,51 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import TestDetail from "./pages/TestDetail";
 import { Skeleton } from "./components/ui/skeleton";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-// Модифицированный защищенный маршрут с более информативным состоянием загрузки
+// A more responsive loading indicator
+const LoadingScreen = () => (
+  <div className="flex items-center justify-center h-screen">
+    <div className="flex flex-col items-center gap-4">
+      <Skeleton className="h-12 w-12 rounded-full" />
+      <Skeleton className="h-4 w-32" />
+      <p className="text-sm text-muted-foreground animate-pulse">Загрузка...</p>
+    </div>
+  </div>
+);
+
+// Simplified protected route with better error handling
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
+  
+  console.log("ProtectedRoute - loading:", loading, "user:", user?.id);
   
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <Skeleton className="h-4 w-32" />
-          <p className="text-sm text-muted-foreground animate-pulse">Загрузка...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
-  // Без редиректа, просто рендерим дочерние компоненты
+  if (!user) {
+    console.log("No user, redirecting to /auth");
+    return <Navigate to="/auth" replace />;
+  }
+  
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   
+  console.log("AppRoutes - loading:", loading, "user:", user?.id);
+  
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <Skeleton className="h-4 w-32" />
-          <p className="text-sm text-muted-foreground animate-pulse">Загрузка...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   return (
@@ -85,18 +96,22 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  console.log("App component rendering");
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

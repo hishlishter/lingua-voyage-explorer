@@ -26,12 +26,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [supabaseInitialized, setSupabaseInitialized] = useState(false);
   const navigate = useNavigate();
 
+  // Console log for debugging
+  console.log('AuthProvider rendering, loading:', loading, 'user:', user?.id);
+
   useEffect(() => {
     setLoading(true);
+    console.log('AuthProvider effect running');
     
     const initializeSupabase = async () => {
       try {
         const isAuthenticated = await checkAuth();
+        console.log('Supabase initialized, authenticated:', isAuthenticated);
         setSupabaseInitialized(true);
       } catch (error) {
         console.error('Failed to initialize Supabase:', error);
@@ -43,62 +48,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         console.log('Fetching initial session...');
         const { data, error } = await supabase.auth.getSession();
+        
         if (error) {
           console.error('Error getting session:', error);
-        } else {
-          setSession(data.session);
-          setUser(data.session?.user ?? null);
-          
-          if (data.session?.user) {
-            console.log('User logged in, fetching profile...');
-            await fetchUserProfile(data.session.user.id);
-          }
-          
-          setSupabaseInitialized(true);
+          setLoading(false);
+          return;
         }
+        
+        console.log('Session data:', data.session?.user?.id || 'No session');
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        
+        if (data.session?.user) {
+          console.log('User logged in, fetching profile...');
+          await fetchUserProfile(data.session.user.id);
+        } else {
+          console.log('No user in session');
+        }
+        
+        setSupabaseInitialized(true);
+        setLoading(false);
       } catch (error) {
         console.error('Unexpected error getting session:', error);
         setSupabaseInitialized(false);
-      } finally {
         setLoading(false);
       }
     };
 
+    // Execute initialization sequence
     (async () => {
       await initializeSupabase();
       await getInitialSession();
     })();
 
-    let subscription: { unsubscribe: () => void } | null = null;
-    
-    try {
-      const { data } = supabase.auth.onAuthStateChange(
-        async (_event, session) => {
-          console.log('Auth state changed:', _event, session?.user?.id);
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            console.log('Ensuring profile exists for user:', session.user.id);
-            await ensureUserProfile(session.user);
-          } else {
-            setProfile(null);
-          }
-          
-          setLoading(false);
+    // Set up auth state change listener
+    const { data } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          console.log('Ensuring profile exists for user:', session.user.id);
+          await ensureUserProfile(session.user);
+        } else {
+          setProfile(null);
         }
-      );
-      
-      subscription = data.subscription;
-    } catch (error) {
-      console.error('Error setting up auth state change listener:', error);
-      setLoading(false);
-    }
-
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
+        
+        setLoading(false);
       }
+    );
+    
+    // Cleanup function
+    return () => {
+      data.subscription.unsubscribe();
     };
   }, []);
 

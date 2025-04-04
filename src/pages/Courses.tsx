@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Clock, GraduationCap, Play } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const courses = [
   {
@@ -64,6 +65,10 @@ const courses = [
 ];
 
 const Courses = () => {
+  const { loading } = useAuth();
+  
+  console.log("Courses page rendering, loading:", loading);
+  
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
