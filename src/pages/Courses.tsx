@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { Header } from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 
 const Courses = () => {
   return (

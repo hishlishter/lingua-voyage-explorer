@@ -3,7 +3,11 @@ import React from 'react';
 import { Search, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-const Header = () => {
+interface HeaderProps {
+  title?: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ title }) => {
   return (
     <div className="flex items-center justify-between py-4 px-6">
       <div className="flex items-center gap-4">
@@ -13,6 +17,7 @@ const Header = () => {
         <button className="p-2 rounded-full hover:bg-gray-100">
           <ChevronRight size={20} />
         </button>
+        {title && <h1 className="text-xl font-semibold ml-2">{title}</h1>}
       </div>
 
       <div className="w-96">

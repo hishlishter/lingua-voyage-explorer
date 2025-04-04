@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { Header } from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
