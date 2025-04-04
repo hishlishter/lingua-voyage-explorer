@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -42,6 +43,7 @@ const UserProfile = () => {
     }
   }, [user?.id]);
 
+  // Use profile data from cache or query directly
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
@@ -50,7 +52,6 @@ const UserProfile = () => {
       try {
         const cachedProfile = localStorage.getItem(`profile_${user.id}`);
         if (cachedProfile) {
-          console.log('Using cached profile in UserProfile');
           return JSON.parse(cachedProfile) as Profile;
         }
         
@@ -62,7 +63,7 @@ const UserProfile = () => {
         
         if (error) {
           console.error('Ошибка получения профиля:', error);
-          return null;
+          return fallbackProfile;
         }
         
         if (data) {
@@ -70,18 +71,21 @@ const UserProfile = () => {
           setLocalProfile(data);
         }
         
-        return data;
+        return data || fallbackProfile;
       } catch (e) {
         console.error('Unexpected error fetching profile:', e);
-        return null;
+        return fallbackProfile;
       }
     },
     enabled: !!user,
     staleTime: 300000,
     placeholderData: localProfile || fallbackProfile,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    refetchInterval: false, // Отключаем автоматическое обновление
+    retry: 1
   });
 
+  // Mutation for updating avatar
   const updateAvatarMutation = useMutation({
     mutationFn: async (avatarUrl: string) => {
       if (!user) throw new Error('User not authenticated');
@@ -171,7 +175,8 @@ const UserProfile = () => {
       .toUpperCase();
   };
 
-  const profileData = localProfile || profile || fallbackProfile;
+  // Always use available profile data, fallback to local or default
+  const profileData = profile || localProfile || fallbackProfile;
 
   if (!user) {
     return (

@@ -32,43 +32,66 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+// Создаем пустые данные для графика
+const generateEmptyData = () => {
+  const monthNames = [
+    'Янв', 'Фев', 'Март', 'Апр', 'Май', 'Июнь',
+    'Июль', 'Авг', 'Сент', 'Окт', 'Нояб', 'Дек'
+  ];
+  
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  return monthNames.map((name, index) => ({
+    name,
+    value1: 0,
+    isCurrentMonth: index === currentMonth && currentYear === new Date().getFullYear()
+  }));
+};
+
 const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear }) => {
   const [year, setYear] = useState(initialYear);
   const { user } = useAuth();
   
-  // Получаем данные о результатах тестов пользователя с обновленными queryKey
+  // Получаем данные о результатах тестов пользователя
   const { data: testResults, isLoading } = useQuery({
     queryKey: ['test-results', user?.id, year],
     queryFn: async () => {
       if (!user) return [];
       
-      const startDate = new Date(year, 0, 1);
-      const endDate = new Date(year, 11, 31);
-      
-      const { data, error } = await supabase
-        .from('test_results')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-        .order('created_at');
-      
-      if (error) {
+      try {
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+        
+        const { data, error } = await supabase
+          .from('test_results')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString())
+          .order('created_at');
+        
+        if (error) {
+          console.error('Error fetching test results:', error);
+          return [];
+        }
+        
+        return data || [];
+      } catch (error) {
         console.error('Error fetching test results:', error);
         return [];
       }
-      
-      return data || [];
     },
     enabled: !!user,
-    // Add refetchOnWindowFocus to refresh data when the tab regains focus
-    refetchOnWindowFocus: true,
-    // Add staleTime to make sure data is refreshed more frequently
-    staleTime: 30000 // 30 seconds
+    refetchOnWindowFocus: false,
+    staleTime: 300000, // 5 минут
+    retry: 1,
+    placeholderData: [], // Используем пустой массив в качестве заглушки
+    refetchInterval: false // Отключаем автоматическое обновление
   });
   
   // Подготавливаем данные для графика
-  const [chartData, setChartData] = useState<MonthlyScore[]>([]);
+  const [chartData, setChartData] = useState<MonthlyScore[]>(generateEmptyData());
   
   useEffect(() => {
     // Названия месяцев
@@ -162,66 +185,60 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        {isLoading ? (
-          <div className="h-64 mt-4 flex items-center justify-center">
-            <p>Загрузка данных...</p>
-          </div>
-        ) : (
-          <div className="h-64 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={enhancedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: '#888' }}
-                />
-                <YAxis hide domain={[0, 10]} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="value1" 
-                  stroke="#B794F4" 
-                  strokeWidth={3} 
-                  dot={(props) => {
-                    // Для точек используем особую логику отображения
-                    const { cx, cy, payload } = props;
-                    
-                    // Если это текущий месяц, показываем особую точку и балл над ней
-                    if (payload.isCurrentMonth) {
-                      return (
-                        <g>
-                          <circle 
-                            cx={cx} 
-                            cy={cy} 
-                            r={6} 
-                            fill="#B794F4" 
-                            stroke="#fff" 
-                            strokeWidth={2}
-                          />
-                          <text 
-                            x={cx} 
-                            y={cy - 15} 
-                            textAnchor="middle" 
-                            fill="#333" 
-                            fontSize="12" 
-                            fontWeight="bold"
-                          >
-                            {payload.value1.toFixed(1)}
-                          </text>
-                        </g>
-                      );
-                    }
-                    
-                    // Для остальных месяцев точек нет
-                    return null;
-                  }}
-                  activeDot={{ r: 6, fill: '#B794F4', stroke: '#fff', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        <div className="h-64 mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={enhancedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <XAxis 
+                dataKey="name" 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: '#888' }}
+              />
+              <YAxis hide domain={[0, 10]} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line 
+                type="monotone" 
+                dataKey="value1" 
+                stroke="#B794F4" 
+                strokeWidth={3} 
+                dot={(props) => {
+                  // Для точек используем особую логику отображения
+                  const { cx, cy, payload } = props;
+                  
+                  // Если это текущий месяц, показываем особую точку и балл над ней
+                  if (payload.isCurrentMonth) {
+                    return (
+                      <g>
+                        <circle 
+                          cx={cx} 
+                          cy={cy} 
+                          r={6} 
+                          fill="#B794F4" 
+                          stroke="#fff" 
+                          strokeWidth={2}
+                        />
+                        <text 
+                          x={cx} 
+                          y={cy - 15} 
+                          textAnchor="middle" 
+                          fill="#333" 
+                          fontSize="12" 
+                          fontWeight="bold"
+                        >
+                          {payload.value1.toFixed(1)}
+                        </text>
+                      </g>
+                    );
+                  }
+                  
+                  // Для остальных месяцев точек нет
+                  return null;
+                }}
+                activeDot={{ r: 6, fill: '#B794F4', stroke: '#fff', strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

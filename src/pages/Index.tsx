@@ -26,11 +26,9 @@ const Index = () => {
       if (!user?.id) return null;
       
       try {
-        console.log('Fetching profile for user:', user.id);
         // Используем кеш-первую стратегию
         const cachedProfile = localStorage.getItem(`profile_${user.id}`);
         if (cachedProfile) {
-          console.log('Using cached profile data');
           return JSON.parse(cachedProfile) as Profile;
         }
         
@@ -42,7 +40,7 @@ const Index = () => {
         
         if (error) {
           console.error('Error fetching profile:', error);
-          throw error;
+          return fallbackProfile;
         }
         
         // Кешируем данные профиля в localStorage
@@ -50,18 +48,18 @@ const Index = () => {
           localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
         }
         
-        return data;
+        return data || fallbackProfile;
       } catch (error) {
         console.error('Error in query function:', error);
-        // Return fallback profile on error instead of throwing
         return fallbackProfile;
       }
     },
     enabled: !!user?.id,
     retry: 1,
-    staleTime: 300000, // Увеличиваем время кеширования до 5 минут
+    staleTime: 300000, // 5 минут
     refetchOnWindowFocus: false,
     placeholderData: fallbackProfile, // Используем заглушку немедленно
+    refetchInterval: false // Отключаем автоматическое обновление
   });
 
   const handleRetry = () => {
@@ -90,7 +88,7 @@ const Index = () => {
             />
             
             {user && (
-              <Suspense fallback={null}>
+              <Suspense fallback={<div className="text-center py-4">Загрузка...</div>}>
                 <Dashboard profile={profile || fallbackProfile} />
               </Suspense>
             )}
