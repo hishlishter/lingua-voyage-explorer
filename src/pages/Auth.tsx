@@ -6,9 +6,10 @@ import { AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
+import { Button } from '@/components/ui/button';
 
 const Auth = () => {
-  const { supabaseInitialized } = useAuth();
+  const { supabaseInitialized, signInWithTestAccount } = useAuth();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100">
@@ -38,6 +39,11 @@ const Auth = () => {
           
           <TabsContent value="signin">
             <LoginForm />
+            <div className="mt-4 text-center">
+              <Button variant="ghost" size="sm" onClick={signInWithTestAccount}>
+                Войти с тестовым аккаунтом
+              </Button>
+            </div>
           </TabsContent>
           
           <TabsContent value="signup">
