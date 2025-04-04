@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -60,12 +59,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
-      // For email validation issues with test domains, use a real-looking email format
       const { error, data } = await supabase.auth.signUp({ 
         email,
         password,
         options: {
-          // Remove emailRedirectTo as it may be causing issues
           data: {
             name: "",
           }
@@ -131,43 +128,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithTestAccount = async () => {
     try {
-      // Use a more common email format that's less likely to be filtered
-      const testEmail = "test123@gmail.com";
+      const testEmail = "test@example.com";
       const testPassword = "testpassword123";
       
       console.log("Attempting to sign in with test account...");
       
-      // First try to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword
       });
       
-      if (signInError) {
-        console.log("Test account login failed, creating new account:", signInError.message);
+      if (!signInError && signInData?.user) {
+        console.log("Test account login successful");
+        toast.success('Вход с тестовым аккаунтом выполнен успешно');
+        navigate('/');
+        return;
+      }
+      
+      console.log("Test account login failed, creating new account:", signInError?.message);
+      
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', testEmail)
+        .single();
         
-        // If sign in fails, try to create a new account
-        const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+      if (existingProfile) {
+        console.log("User profile already exists, trying to sign in again");
+        
+        await supabase.auth.signUp({
           email: testEmail,
-          password: testPassword,
-          options: {
-            data: {
-              name: "Тестовый Пользователь",
-            }
-          }
+          password: testPassword
         });
         
-        if (signUpError) {
-          console.error("Failed to create test account:", signUpError);
-          toast.error('Не удалось создать тестовый аккаунт', {
-            description: signUpError.message
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const { error: secondSignInError } = await supabase.auth.signInWithPassword({
+          email: testEmail,
+          password: testPassword
+        });
+        
+        if (secondSignInError) {
+          console.error("Failed to login with existing test account:", secondSignInError);
+          toast.error('Не удалось войти с существующим тестовым аккаунтом', {
+            description: secondSignInError.message
           });
           return;
         }
         
-        if (signUpData?.user) {
-          console.log("Creating test profile for user:", signUpData.user.id);
+        console.log("Login successful after retry");
+        toast.success('Вход с тестовым аккаунтом выполнен успешно');
+        navigate('/');
+        return;
+      }
+      
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+        email: testEmail,
+        password: testPassword,
+        options: {
+          data: {
+            name: "Тестовый Пользователь",
+          }
+        }
+      });
+      
+      if (signUpError) {
+        console.error("Failed to create test account:", signUpError);
+        toast.error('Не удалось создать тестовый аккаунт', {
+          description: signUpError.message
+        });
+        return;
+      }
+      
+      if (signUpData?.user) {
+        console.log("Creating test profile for user:", signUpData.user.id);
+        
+        const { data: profileCheck } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', signUpData.user.id)
+          .single();
           
+        if (!profileCheck) {
           const { error: profileError } = await supabase
             .from('profiles')
             .insert([
@@ -187,26 +229,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             return;
           }
-          
-          // Wait longer to ensure the account is fully created
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          
-          const { error: loginError } = await supabase.auth.signInWithPassword({
-            email: testEmail,
-            password: testPassword
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: testEmail,
+          password: testPassword
+        });
+        
+        if (loginError) {
+          console.error("Failed to login after creating test account:", loginError);
+          toast.error('Не удалось войти с тестовым аккаунтом', {
+            description: loginError.message
           });
-          
-          if (loginError) {
-            console.error("Failed to login after creating test account:", loginError);
-            toast.error('Не удалось войти с тестовым аккаунтом', {
-              description: loginError.message
-            });
-            return;
-          }
-        } else {
-          toast.error('Не удалось создать тестовый аккаунт');
           return;
         }
+      } else {
+        toast.error('Не удалось создать тестовый аккаунт');
+        return;
       }
       
       console.log("Test account login successful");
