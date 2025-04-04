@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, Profile } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
@@ -16,8 +16,6 @@ const Index = () => {
     queryFn: async (): Promise<Profile | null> => {
       if (!user?.id) return null;
       
-      console.log("Fetching profile for user:", user.id);
-      
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -30,7 +28,6 @@ const Index = () => {
           throw error;
         }
         
-        console.log("Profile data retrieved:", data);
         return data;
       } catch (error) {
         console.error('Error in query function:', error);
@@ -39,10 +36,12 @@ const Index = () => {
     },
     enabled: !!user?.id,
     retry: 1,
+    staleTime: 30000, // Кэшируем данные на 30 секунд
+    refetchOnWindowFocus: false, // Отключаем повторную загрузку при фокусе окна
   });
 
   const handleRetry = () => {
-    window.location.reload();
+    refetch();
   };
 
   return (
@@ -62,7 +61,11 @@ const Index = () => {
               onRetry={handleRetry}
             />
             
-            {profile && <Dashboard profile={profile} />}
+            {!isLoading && profile && (
+              <Suspense fallback={null}>
+                <Dashboard profile={profile} />
+              </Suspense>
+            )}
           </div>
         </div>
       </div>
