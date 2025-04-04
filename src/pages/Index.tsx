@@ -1,28 +1,39 @@
 
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase, Profile } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import UserProfile from '@/components/UserProfile';
-import WordSets from '@/components/WordSets';
 import ProgressChart from '@/components/ProgressChart';
 import QuickActions from '@/components/QuickActions';
-
-const progressData = [
-  { name: 'Январь', value1: 2.5 },
-  { name: 'Февраль', value1: 3.1 },
-  { name: 'Март', value1: 3.8 },
-  { name: 'Апрель', value1: 4.2 },
-  { name: 'Май', value1: 4.5 },
-  { name: 'Июнь', value1: 4.3 },
-  { name: 'Июль', value1: 4.1 },
-  { name: 'Август', value1: 3.8 },
-  { name: 'Сентябрь', value1: 3.5 },
-  { name: 'Октябрь', value1: 3.2 },
-  { name: 'Ноябрь', value1: 3.0 },
-  { name: 'Декабрь', value1: 2.8 },
-];
+import WordSets from '@/components/WordSets';
+import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
+  const { user } = useAuth();
+  
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async (): Promise<Profile | null> => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -31,25 +42,30 @@ const Index = () => {
         <Header />
         
         <div className="flex-1 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <WordSets title="Наборы слов" />
-              <ProgressChart 
-                title="Прогресс" 
-                year={2025} 
-                data={progressData} 
-              />
-            </div>
-            
-            <div className="space-y-6">
-              <UserProfile 
-                name="Али Сарур" 
-                email="vip.sarur@mail.ru" 
-                lessonsCompleted={7} 
-                coursesCompleted={2} 
-              />
-              <QuickActions />
-            </div>
+          <div className="max-w-5xl mx-auto space-y-8">
+            {isLoading ? (
+              <div className="text-center py-12">Загрузка...</div>
+            ) : profile ? (
+              <>
+                <UserProfile 
+                  userProfile={{
+                    name: profile.name,
+                    email: profile.email,
+                    testsCompleted: profile.tests_completed,
+                    coursesCompleted: profile.courses_completed
+                  }}
+                />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ProgressChart />
+                  <QuickActions />
+                </div>
+                
+                <WordSets />
+              </>
+            ) : (
+              <div className="text-center py-12">Профиль не найден</div>
+            )}
           </div>
         </div>
       </div>

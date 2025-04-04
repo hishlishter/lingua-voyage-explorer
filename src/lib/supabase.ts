@@ -1,12 +1,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://your-supabase-url.supabase.co';
-const supabaseAnonKey = 'your-supabase-anon-key';
+const supabaseUrl = 'https://ejyyiilgghontvdrwuns.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTI1MTI5ODEsImV4cCI6MjAyODA4ODk4MX0.7ezbfOe1d_jF66gCMLLQo6bT-3Dun5t_Z36fUMnzcCI';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Типы для данных пользователя
+// Types for user data
 export type Profile = {
   id: string;
   name: string;
@@ -16,7 +16,7 @@ export type Profile = {
   created_at?: string;
 };
 
-// Типы для тестов
+// Types for tests
 export type Test = {
   id: number;
   title: string;
@@ -31,7 +31,7 @@ export type Question = {
   correct_option: number;
 };
 
-// Типы для результатов тестов
+// Types for test results
 export type TestResult = {
   id: string;
   user_id: string;
@@ -41,7 +41,7 @@ export type TestResult = {
   completed_at: string;
 };
 
-// Типы для курсов
+// Types for courses
 export type Course = {
   id: number;
   title: string;
