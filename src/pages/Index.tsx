@@ -4,24 +4,19 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase, Profile, Test } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
-import UserProfile from '@/components/UserProfile';
-import ProgressChart from '@/components/ProgressChart';
-import QuickActions from '@/components/QuickActions';
-import WordSets from '@/components/WordSets';
+import Dashboard from '@/components/Dashboard';
+import SearchResults from '@/components/SearchResults';
+import ProfileLoadingStates from '@/components/ProfileLoadingStates';
 import { useAuth } from '@/context/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Card, CardContent } from '@/components/ui/card';
 
 const Index = () => {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   
-  const { data: profile, isLoading, isError } = useQuery({
+  const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
-      // If no user is logged in, return null immediately
       if (!user?.id) return null;
       
       console.log("Fetching profile for user:", user.id);
@@ -46,7 +41,7 @@ const Index = () => {
       }
     },
     enabled: !!user?.id,
-    retry: 1, // Limit retries to prevent infinite loops
+    retry: 1,
   });
 
   const handleSearch = async (query: string) => {
@@ -135,8 +130,13 @@ const Index = () => {
     }
   };
 
-  // This will provide more information about auth state and loading
-  console.log("Auth state:", { user, isLoadingProfile: isLoading, isError });
+  const handleRetry = () => {
+    window.location.reload();
+  };
+
+  const clearSearchResults = () => {
+    setSearchResults([]);
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -147,78 +147,23 @@ const Index = () => {
         
         <div className="flex-1 p-6">
           <div className="max-w-5xl mx-auto space-y-8">
-            {isSearching ? (
-              <div className="text-center py-12">Поиск...</div>
-            ) : searchResults.length > 0 ? (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Результаты поиска</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {searchResults.map((result) => (
-                    <Card key={result.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="text-sm text-muted-foreground mb-1">
-                          {result.category}
-                        </div>
-                        <h3 className="font-medium text-lg">{result.title}</h3>
-                        <p className="text-muted-foreground text-sm mt-1">
-                          {result.subtitle}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                <button 
-                  className="text-primary hover:underline"
-                  onClick={() => setSearchResults([])}
-                >
-                  Вернуться на главную
-                </button>
-              </div>
+            {searchResults.length > 0 || isSearching ? (
+              <SearchResults 
+                results={searchResults} 
+                isSearching={isSearching} 
+                onClear={clearSearchResults} 
+              />
             ) : (
               <>
-                {/* Add a fallback UI for when user is not yet loaded */}
-                {!user ? (
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-semibold">Добро пожаловать в Языковой тренажер</h2>
-                    <p className="text-muted-foreground mt-2">Пожалуйста, войдите в систему для доступа к вашему профилю</p>
-                  </div>
-                ) : isLoading ? (
-                  <div className="text-center py-12">
-                    <div className="animate-pulse flex flex-col items-center">
-                      <div className="h-12 w-12 bg-primary/20 rounded-full mb-4"></div>
-                      <div className="h-4 w-24 bg-primary/20 rounded mb-2"></div>
-                      <div className="h-2 w-16 bg-primary/20 rounded"></div>
-                    </div>
-                  </div>
-                ) : isError ? (
-                  <div className="text-center py-12">
-                    <p className="text-destructive mb-2">Ошибка при загрузке профиля</p>
-                    <button 
-                      className="text-primary hover:underline"
-                      onClick={() => window.location.reload()}
-                    >
-                      Попробовать снова
-                    </button>
-                  </div>
-                ) : profile ? (
-                  <>
-                    <UserProfile />
-                    
-                    <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
-                      <ProgressChart 
-                        title="Прогресс обучения" 
-                        year={new Date().getFullYear()} 
-                      />
-                      <QuickActions />
-                    </div>
-                    
-                    <WordSets title="Словарные наборы" />
-                  </>
-                ) : (
-                  <div className="text-center py-12">
-                    <p>Профиль не найден. Пожалуйста, создайте новый профиль.</p>
-                  </div>
-                )}
+                <ProfileLoadingStates
+                  isLoading={isLoading}
+                  isError={isError}
+                  user={user}
+                  profile={profile}
+                  onRetry={handleRetry}
+                />
+                
+                {profile && <Dashboard profile={profile} />}
               </>
             )}
           </div>
