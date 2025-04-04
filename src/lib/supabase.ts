@@ -20,6 +20,7 @@ export type Profile = {
   id: string;
   name: string;
   email: string;
+  avatar_url?: string;
   tests_completed: number;
   courses_completed: number;
   created_at?: string;
@@ -30,14 +31,25 @@ export type Test = {
   id: number;
   title: string;
   description: string;
-  questions: Question[];
+  image?: string;
+  level?: string;
+  created_at?: string;
+  questions?: Question[];
 };
 
 export type Question = {
   id: number;
+  test_id?: number;
   text: string;
-  options: string[];
-  correct_option: number;
+  created_at?: string;
+  options?: Option[];
+};
+
+export type Option = {
+  id: number;
+  question_id?: number;
+  text: string;
+  is_correct: boolean;
 };
 
 // Types for test results
@@ -56,5 +68,50 @@ export type Course = {
   title: string;
   description: string;
   image: string;
+  level?: string;
   lessons_count: number;
+  created_at?: string;
+};
+
+export type Lesson = {
+  id: number;
+  course_id: number;
+  title: string;
+  content?: string;
+  order_number: number;
+  created_at?: string;
+};
+
+export type CourseProgress = {
+  id: string;
+  user_id: string;
+  course_id: number;
+  lessons_completed: number;
+  completed: boolean;
+  last_viewed_at: string;
+};
+
+// Types for dictionary
+export type DictionaryWord = {
+  id: number;
+  word: string;
+  translation: string;
+  example?: string;
+  created_at?: string;
+};
+
+export type WordSet = {
+  id: number;
+  title: string;
+  description?: string;
+  created_at?: string;
+  words?: DictionaryWord[];
+};
+
+export type UserWordProgress = {
+  id: string;
+  user_id: string;
+  word_id: number;
+  learned: boolean;
+  last_reviewed_at: string;
 };
