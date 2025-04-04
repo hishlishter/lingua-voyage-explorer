@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -21,6 +22,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const loginSchema = z.object({
   email: z.string().email("Введите корректный email"),
@@ -44,6 +46,7 @@ const Auth = () => {
   const { signIn, signUp, signInWithTestAccount } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTestLoading, setIsTestLoading] = useState(false);
+  const navigate = useNavigate();
   
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -91,6 +94,10 @@ const Auth = () => {
     } finally {
       setIsTestLoading(false);
     }
+  };
+
+  const handleSkipLogin = () => {
+    navigate('/');
   };
 
   return (
@@ -176,6 +183,15 @@ const Auth = () => {
                   disabled={isTestLoading}
                 >
                   {isTestLoading ? "Вход..." : "Войти с тестовым аккаунтом"}
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  className="w-full mt-4"
+                  onClick={handleSkipLogin}
+                >
+                  Войти без регистрации
                 </Button>
               </form>
             </Form>
@@ -263,6 +279,15 @@ const Auth = () => {
                   disabled={isTestLoading}
                 >
                   {isTestLoading ? "Вход..." : "Войти с тестовым аккаунтом"}
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  className="w-full mt-4"
+                  onClick={handleSkipLogin}
+                >
+                  Войти без регистрации
                 </Button>
               </form>
             </Form>

@@ -16,14 +16,13 @@ import TestDetail from "./pages/TestDetail";
 
 const queryClient = new QueryClient();
 
-// Защищенный маршрут
+// Modified Protected Route that allows unauthenticated users
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
   if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
   
-  if (!user) return <Navigate to="/auth" />;
-  
+  // No redirect, just render the children
   return <>{children}</>;
 };
 
@@ -34,7 +33,7 @@ const AppRoutes = () => {
   
   return (
     <Routes>
-      <Route path="/" element={user ? <Index /> : <Navigate to="/auth" />} />
+      <Route path="/" element={<Index />} />
       <Route path="/settings" element={
         <ProtectedRoute>
           <Settings />
