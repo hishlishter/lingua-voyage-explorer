@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -27,18 +27,34 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const ProgressChart: React.FC<ProgressChartProps> = ({ title, year, data }) => {
+const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear, data }) => {
+  const [year, setYear] = useState(initialYear);
+  
   // Получаем текущий месяц (0-11)
   const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
   
-  // Добавляем в данные флаг для текущего месяца
-  const enhancedData = data.map((item, index) => ({
-    ...item,
-    isCurrentMonth: index === currentMonth
-  }));
+  // Определяем, нужно ли показывать будущие месяцы
+  const shouldLimitToCurrentMonth = year === currentYear;
+  
+  // Добавляем в данные флаг для текущего месяца и фильтруем будущие месяцы если нужно
+  const enhancedData = data
+    .map((item, index) => ({
+      ...item,
+      isCurrentMonth: index === currentMonth && year === currentYear
+    }))
+    .filter((_, index) => !shouldLimitToCurrentMonth || index <= currentMonth);
 
   // Получаем значение текущего месяца для отображения над точкой
-  const currentMonthValue = enhancedData[currentMonth]?.value1 ?? 0;
+  const currentMonthValue = shouldLimitToCurrentMonth ? enhancedData[currentMonth]?.value1 ?? 0 : 0;
+
+  // Обработчики для кнопок переключения года
+  const handlePrevYear = () => setYear(year - 1);
+  const handleNextYear = () => {
+    if (year < currentYear) {
+      setYear(year + 1);
+    }
+  };
 
   return (
     <Card className="shadow-sm border-none overflow-hidden">
@@ -46,11 +62,22 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year, data }) => {
         <div className="flex justify-between items-center">
           <CardTitle className="text-2xl font-semibold">{title}</CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full"
+              onClick={handlePrevYear}
+            >
               <ChevronLeft size={18} />
             </Button>
             <span className="font-medium">{year}</span>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full"
+              onClick={handleNextYear}
+              disabled={year >= currentYear}
+            >
               <ChevronRight size={18} />
             </Button>
           </div>
