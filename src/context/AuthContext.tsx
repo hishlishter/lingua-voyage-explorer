@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, checkAuth } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -21,26 +20,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false); // Changed to false to skip loading state
-  const [supabaseInitialized, setSupabaseInitialized] = useState(true); // Default to true to allow test account sign-in
+  const [loading, setLoading] = useState(false);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if Supabase is properly initialized
     const initializeSupabase = async () => {
       try {
         const isAuthenticated = await checkAuth();
         setSupabaseInitialized(true);
       } catch (error) {
         console.error('Failed to initialize Supabase:', error);
-        // Even if initialization fails, we set to true to allow test account login
         setSupabaseInitialized(true);
       } finally {
         setLoading(false);
       }
     };
 
-    // Get current session on load
     const getInitialSession = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
@@ -53,7 +49,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Unexpected error getting session:', error);
-        // Even if getting session fails, we set to true to allow test account login
         setSupabaseInitialized(true);
       } finally {
         setLoading(false);
@@ -63,7 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeSupabase();
     getInitialSession();
 
-    // Subscribe to auth state changes
     let subscription: { unsubscribe: () => void } | null = null;
     
     try {
@@ -72,7 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session?.user ?? null);
           
-          // Check if user has a profile, if not create one
           if (session?.user) {
             await ensureUserProfile(session.user);
           }
@@ -86,7 +79,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error setting up auth state change listener:', error);
     }
 
-    // Unsubscribe on unmount
     return () => {
       if (subscription) {
         subscription.unsubscribe();
@@ -94,22 +86,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Helper function to ensure user has a profile
   const ensureUserProfile = async (user: User) => {
     try {
-      // First check if profile exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
       
-      if (checkError && checkError.code !== 'PGRST116') { // Not found error
+      if (checkError && checkError.code !== 'PGRST116') {
         console.error('Error checking for profile:', checkError);
         return;
       }
 
-      // If profile doesn't exist, create it
       if (!existingProfile) {
         console.log('Profile not found, creating new profile for:', user.id);
         const { error: createError } = await supabase
@@ -139,7 +128,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    // Always allow test account sign in, even if Supabase isn't initialized properly
     if (email === "test@example.com" && password === "password123") {
       return signInWithTestAccount();
     }
@@ -166,7 +154,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Sign in successful for user:', data.user?.id);
       
-      // Ensure profile exists
       if (data.user) {
         await ensureUserProfile(data.user);
       }
@@ -188,13 +175,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting registration for:', email);
       
-      // Register new user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: email.split('@')[0], // Default name from email
+            name: email.split('@')[0]
           }
         }
       });
@@ -215,15 +201,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('User registered successfully:', data.user.id);
       
-      // Create profile for new user right after registration
       try {
-        // Disable RLS temporarily via SQL for profile creation
         const { error: createError } = await supabase
           .from('profiles')
           .insert([
             { 
               id: data.user.id, 
-              name: email.split('@')[0], // Set a default name based on email
+              name: email.split('@')[0],
               email: email,
               tests_completed: 0,
               courses_completed: 0
@@ -233,9 +217,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (createError) {
           console.error('Profile creation error:', createError);
-          
-          // Even if profile creation fails, we still allow the user to sign in
-          // The profile can be created later via ensureUserProfile
           toast.warning('Profile creation issue', {
             description: 'Your account was created but there was an issue setting up your profile. You can still sign in.'
           });
@@ -258,7 +239,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     if (!supabaseInitialized) {
-      // If Supabase isn't initialized, just clear local state
       setUser(null);
       setSession(null);
       toast.success('Signed out successfully');
@@ -289,20 +269,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Signing in with test account...");
       
-      // Create a mock user for test account
       const testUser = {
         id: 'test-user-id',
         email: 'test@example.com',
         user_metadata: {
           name: 'Test User'
-        }
+        },
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+        role: '',
+        updated_at: new Date().toISOString(),
+        confirmed_at: new Date().toISOString(),
+        last_sign_in_at: new Date().toISOString(),
+        phone: '',
+        factors: null,
+        identities: []
       } as User;
       
       setUser(testUser);
       
-      // Mock session
       const mockSession = {
-        user: testUser
+        user: testUser,
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token',
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        expires_in: 3600,
+        token_type: 'bearer'
       } as Session;
       
       setSession(mockSession);
