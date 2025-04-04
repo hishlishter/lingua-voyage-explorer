@@ -61,15 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Validate email format with a more comprehensive regex
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(email)) {
-        toast.error('Ошибка регистрации', {
-          description: 'Пожалуйста, введите корректный email адрес'
-        });
-        return;
-      }
-
       // Create user in Auth
       const { error, data } = await supabase.auth.signUp({ 
         email, 
