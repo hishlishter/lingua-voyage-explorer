@@ -10,6 +10,7 @@ import Courses from "./pages/Courses";
 import Dictionary from "./pages/Dictionary";
 import Tests from "./pages/Tests";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/courses" element={<Courses />} />
           <Route path="/dictionary" element={<Dictionary />} />
           <Route path="/tests" element={<Tests />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

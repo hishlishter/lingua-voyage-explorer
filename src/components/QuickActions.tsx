@@ -1,17 +1,23 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
 
 interface QuickActionProps {
   title: string;
   subtitle: string;
   icon: string;
+  to: string;
 }
 
-const QuickActionCard: React.FC<QuickActionProps> = ({ title, subtitle, icon }) => {
+const QuickActionCard: React.FC<QuickActionProps> = ({ title, subtitle, icon, to }) => {
+  const navigate = useNavigate();
+  
   return (
-    <Card className="shadow-sm hover:shadow transition-shadow border-none">
+    <Card 
+      className="shadow-sm hover:shadow transition-shadow border-none cursor-pointer"
+      onClick={() => navigate(to)}
+    >
       <CardContent className="p-4 flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl flex-shrink-0 bg-pink-100 flex items-center justify-center text-2xl">
           {icon}
@@ -35,18 +41,21 @@ const QuickActions = () => {
       <div className="space-y-4">
         <QuickActionCard 
           title="Тест" 
-          subtitle="20 мин" 
+          subtitle="Проверь свои знания" 
           icon="🎓"
+          to="/tests"
         />
         <QuickActionCard 
-          title="Пройти урок" 
-          subtitle="15 мин" 
-          icon="✏️"
+          title="Словари" 
+          subtitle="Изучай новые слова" 
+          icon="📚"
+          to="/dictionary"
         />
         <QuickActionCard 
           title="Курсы" 
-          subtitle="" 
+          subtitle="Начни обучение" 
           icon="📁"
+          to="/courses"
         />
       </div>
     </div>
