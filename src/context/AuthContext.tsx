@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -59,9 +60,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
+      // For email validation issues with test domains, use a real-looking email format
       const { error, data } = await supabase.auth.signUp({ 
-        email, 
-        password
+        email,
+        password,
+        options: {
+          // Remove emailRedirectTo as it may be causing issues
+          data: {
+            name: "",
+          }
+        }
       });
 
       if (error) {
@@ -123,24 +131,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithTestAccount = async () => {
     try {
-      const testEmail = "test@example.com";
+      // Use a more common email format that's less likely to be filtered
+      const testEmail = "test123@gmail.com";
       const testPassword = "testpassword123";
       
       console.log("Attempting to sign in with test account...");
       
-      await supabase.auth.signOut();
-      
-      const { error, data } = await supabase.auth.signInWithPassword({
+      // First try to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword
       });
       
-      if (error) {
-        console.log("Test account login failed, creating new account:", error.message);
+      if (signInError) {
+        console.log("Test account login failed, creating new account:", signInError.message);
         
+        // If sign in fails, try to create a new account
         const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
           email: testEmail,
-          password: testPassword
+          password: testPassword,
+          options: {
+            data: {
+              name: "Тестовый Пользователь",
+            }
+          }
         });
         
         if (signUpError) {
@@ -174,7 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
           
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Wait longer to ensure the account is fully created
+          await new Promise(resolve => setTimeout(resolve, 5000));
           
           const { error: loginError } = await supabase.auth.signInWithPassword({
             email: testEmail,
