@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -41,18 +41,6 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
           <ChevronRight size={20} />
         </Button>
         {title && <h1 className="text-xl font-semibold ml-2">{title}</h1>}
-      </div>
-
-      <div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-gray-100 relative"
-          aria-label="Notifications"
-        >
-          <Bell size={20} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </Button>
       </div>
     </div>
   );
