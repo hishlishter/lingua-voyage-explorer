@@ -18,7 +18,7 @@ const TestDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: number}>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: string}>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
 
@@ -26,6 +26,8 @@ const TestDetail = () => {
   const { data: test, isLoading } = useQuery({
     queryKey: ['test', id],
     queryFn: async (): Promise<Test | null> => {
+      if (!id) return null;
+      
       const { data, error } = await supabase
         .from('tests')
         .select('*, questions(*, options(*))')
@@ -46,7 +48,7 @@ const TestDetail = () => {
   const saveResultMutation = useMutation({
     mutationFn: async (result: { 
       user_id: string; 
-      test_id: number; 
+      test_id: string; 
       score: number; 
       total_questions: number 
     }) => {
@@ -87,7 +89,7 @@ const TestDetail = () => {
     }
   });
 
-  const handleSelectAnswer = (optionId: number) => {
+  const handleSelectAnswer = (optionId: string) => {
     setSelectedAnswers({
       ...selectedAnswers,
       [currentQuestionIndex]: optionId
@@ -95,17 +97,19 @@ const TestDetail = () => {
   };
 
   const handleNextQuestion = () => {
+    if (!test) return;
+    
     if (currentQuestionIndex < (test?.questions?.length || 0) - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       // Подсчет результатов
       let correctAnswers = 0;
       
-      test?.questions.forEach((question, index) => {
+      test?.questions?.forEach((question, index) => {
         const selectedOptionId = selectedAnswers[index];
         const correctOption = question.options?.find(option => option.is_correct);
         
-        if (correctOption && selectedOptionId === correctOption.id) {
+        if (correctOption && selectedOptionId === correctOption.id.toString()) {
           correctAnswers++;
         }
       });
@@ -114,12 +118,12 @@ const TestDetail = () => {
       setShowResults(true);
       
       // Сохраняем результаты
-      if (user && test) {
+      if (user && test && id) {
         saveResultMutation.mutate({
           user_id: user.id,
-          test_id: test.id,
+          test_id: id,
           score: correctAnswers,
-          total_questions: test.questions.length,
+          total_questions: test.questions?.length || 0,
         });
       }
     }
@@ -158,7 +162,21 @@ const TestDetail = () => {
     );
   }
 
-  const currentQuestion = test.questions[currentQuestionIndex];
+  const currentQuestion = test.questions?.[currentQuestionIndex];
+
+  if (!currentQuestion) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <div className="flex-1 p-6 flex items-center justify-center">
+            <div>Вопрос не найден</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -180,7 +198,7 @@ const TestDetail = () => {
             </div>
             
             <div className="mb-4 text-sm">
-              Вопрос {currentQuestionIndex + 1} из {test.questions.length}
+              Вопрос {currentQuestionIndex + 1} из {test.questions?.length || 0}
             </div>
             
             <Card>
@@ -189,8 +207,8 @@ const TestDetail = () => {
               </CardHeader>
               <CardContent>
                 <RadioGroup 
-                  value={selectedAnswers[currentQuestionIndex]?.toString()} 
-                  onValueChange={(value) => handleSelectAnswer(parseInt(value))}
+                  value={selectedAnswers[currentQuestionIndex]} 
+                  onValueChange={(value) => handleSelectAnswer(value)}
                   className="space-y-3"
                 >
                   {currentQuestion.options?.map((option: Option) => (
@@ -206,7 +224,7 @@ const TestDetail = () => {
                     onClick={handleNextQuestion}
                     disabled={selectedAnswers[currentQuestionIndex] === undefined}
                   >
-                    {currentQuestionIndex < test.questions.length - 1 ? 'Следующий вопрос' : 'Завершить тест'}
+                    {currentQuestionIndex < (test.questions?.length || 0) - 1 ? 'Следующий вопрос' : 'Завершить тест'}
                   </Button>
                 </div>
               </CardContent>
@@ -217,7 +235,7 @@ const TestDetail = () => {
                 open={showResults}
                 onClose={handleCloseResults}
                 score={score}
-                totalQuestions={test.questions.length}
+                totalQuestions={test.questions?.length || 0}
                 testTitle={test.title}
               />
             )}
