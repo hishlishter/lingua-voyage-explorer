@@ -133,55 +133,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Attempting to sign in with test account...");
       
-      const { error: signInError, data: signInData } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword
       });
       
-      if (!signInError && signInData?.user) {
+      if (!signInError) {
         console.log("Test account login successful");
         toast.success('Вход с тестовым аккаунтом выполнен успешно');
         navigate('/');
         return;
       }
       
-      console.log("Test account login failed, creating new account:", signInError?.message);
+      console.log("Test account login failed, attempting to create account:", signInError.message);
       
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', testEmail)
-        .single();
+      const { data: userExists } = await supabase.auth.admin.getUserByEmail(testEmail)
+        .catch(() => ({ data: null }));
+      
+      if (userExists) {
+        console.log("User exists but password may be incorrect, trying to sign up again");
         
-      if (existingProfile) {
-        console.log("User profile already exists, trying to sign in again");
-        
-        await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email: testEmail,
           password: testPassword
         });
         
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { error: secondSignInError } = await supabase.auth.signInWithPassword({
-          email: testEmail,
-          password: testPassword
-        });
-        
-        if (secondSignInError) {
-          console.error("Failed to login with existing test account:", secondSignInError);
-          toast.error('Не удалось войти с существующим тестовым аккаунтом', {
-            description: secondSignInError.message
+        if (!signUpError) {
+          const { error: retrySignInError } = await supabase.auth.signInWithPassword({
+            email: testEmail,
+            password: testPassword
           });
-          return;
+          
+          if (!retrySignInError) {
+            console.log("Login successful after recreating user");
+            toast.success('Вход с тестовым аккаунтом выполнен успешно');
+            navigate('/');
+            return;
+          }
         }
-        
-        console.log("Login successful after retry");
-        toast.success('Вход с тестовым аккаунтом выполнен успешно');
-        navigate('/');
-        return;
       }
       
+      console.log("Creating new test account");
       const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
         email: testEmail,
         password: testPassword,
@@ -203,56 +195,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (signUpData?.user) {
         console.log("Creating test profile for user:", signUpData.user.id);
         
-        const { data: profileCheck } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', signUpData.user.id)
-          .single();
-          
-        if (!profileCheck) {
-          const { error: profileError } = await supabase
+        try {
+          const { data: profileCheck } = await supabase
             .from('profiles')
-            .insert([
-              { 
-                id: signUpData.user.id, 
-                name: "Тестовый Пользователь",
-                email: testEmail,
-                tests_completed: 3,
-                courses_completed: 2
+            .select('id')
+            .eq('id', signUpData.user.id)
+            .single();
+          
+          if (!profileCheck) {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert([
+                { 
+                  id: signUpData.user.id, 
+                  name: "Тестовый Пользователь",
+                  email: testEmail,
+                  tests_completed: 3,
+                  courses_completed: 2
+                }
+              ]);
+              
+            if (profileError) {
+              console.error('Error creating test profile:', profileError);
+              
+              if (profileError.code === '23505') {
+                console.log("Profile already exists with this ID, proceeding to login");
+              } else {
+                toast.error('Ошибка создания тестового профиля', {
+                  description: profileError.message
+                });
+                return;
               }
-            ]);
-            
-          if (profileError) {
-            console.error('Error creating test profile:', profileError);
-            toast.error('Ошибка создания тестового профиля', {
-              description: profileError.message
+            }
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const { error: loginError } = await supabase.auth.signInWithPassword({
+            email: testEmail,
+            password: testPassword
+          });
+          
+          if (loginError) {
+            console.error("Failed to login after creating test account:", loginError);
+            toast.error('Не удалось войти с тестовым аккаунтом', {
+              description: loginError.message
             });
             return;
           }
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email: testEmail,
-          password: testPassword
-        });
-        
-        if (loginError) {
-          console.error("Failed to login after creating test account:", loginError);
-          toast.error('Не удалось войти с тестовым аккаунтом', {
-            description: loginError.message
+          
+          console.log("Test account login successful");
+          toast.success('Вход с тестовым аккаунтом выполнен успешно');
+          navigate('/');
+        } catch (error: any) {
+          console.error("Error in test account profile creation:", error);
+          toast.error('Ошибка при настройке тестового аккаунта', {
+            description: error?.message || 'Неизвестная ошибка'
           });
-          return;
         }
       } else {
         toast.error('Не удалось создать тестовый аккаунт');
-        return;
       }
-      
-      console.log("Test account login successful");
-      toast.success('Вход с тестовым аккаунтом выполнен успешно');
-      navigate('/');
     } catch (error: any) {
       console.error('Ошибка при входе с тестовым аккаунтом:', error);
       toast.error('Произошла ошибка при входе с тестовым аккаунтом', {
