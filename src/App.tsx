@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,14 +12,25 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import TestDetail from "./pages/TestDetail";
+import { Skeleton } from "./components/ui/skeleton";
 
 const queryClient = new QueryClient();
 
-// Модифицированный защищенный маршрут, который позволяет неаутентифицированным пользователям
+// Модифицированный защищенный маршрут с более информативным состоянием загрузки
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { loading } = useAuth();
   
-  if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <Skeleton className="h-4 w-32" />
+          <p className="text-sm text-muted-foreground animate-pulse">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Без редиректа, просто рендерим дочерние компоненты
   return <>{children}</>;
@@ -29,7 +39,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   
-  if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <Skeleton className="h-4 w-32" />
+          <p className="text-sm text-muted-foreground animate-pulse">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <Routes>

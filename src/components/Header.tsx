@@ -88,13 +88,13 @@ const Header: React.FC<HeaderProps> = ({ onSearch, title }) => {
             <span className="absolute top-0 right-0 bg-red-500 rounded-full w-2 h-2"></span>
           </Button>
           
-          {user && profile ? (
+          {user ? (
             <Avatar 
               className="h-8 w-8 cursor-pointer" 
               onClick={() => navigate('/settings')}
             >
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+              <AvatarImage src={profile?.avatar_url || undefined} />
+              <AvatarFallback>{profile?.name ? getInitials(profile.name) : "U"}</AvatarFallback>
             </Avatar>
           ) : (
             <Button 

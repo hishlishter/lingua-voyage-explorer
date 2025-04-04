@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, Profile, TestResult } from '@/lib/supabase';
@@ -11,9 +10,10 @@ import WordSets from '@/components/WordSets';
 import { useAuth } from '@/context/AuthContext';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Search } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -64,7 +64,6 @@ const Index = () => {
   // Transform test results into chart data
   const progressData = React.useMemo(() => {
     if (!testResults || testResults.length === 0) {
-      // Return sample data if no test results
       return [
         { name: 'Янв', value1: 4.5 },
         { name: 'Фев', value1: 5.3 },
@@ -81,7 +80,6 @@ const Index = () => {
       ];
     }
 
-    // Group test results by month
     const resultsByMonth = testResults.reduce((acc, result) => {
       const date = new Date(result.completed_at);
       const monthIndex = date.getMonth();
@@ -104,7 +102,6 @@ const Index = () => {
       return acc;
     }, {} as Record<string, { scores: number[], total: number, count: number }>);
 
-    // Calculate average scores by month
     return Object.entries(resultsByMonth).map(([name, data]) => ({
       name,
       value1: data.total / data.count,
@@ -120,7 +117,6 @@ const Index = () => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return [];
 
-    // Define search categories and items to search through
     const searchItems = [
       { type: 'Тест', name: 'Тест по грамматике', path: '/tests/1' },
       { type: 'Тест', name: 'Тест на знание слов', path: '/tests/2' },
@@ -137,7 +133,47 @@ const Index = () => {
     );
   }, [searchQuery]);
 
-  const isLoading = profileLoading || testResultsLoading;
+  const isLoading = authLoading || profileLoading || testResultsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <div className="flex-1 p-6">
+            <div className="max-w-5xl mx-auto space-y-8">
+              <div className="rounded-lg border p-6">
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                  <Skeleton className="h-24 w-24 rounded-full" />
+                  <div className="space-y-4 flex-1">
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="rounded-lg border p-6">
+                  <Skeleton className="h-6 w-48 mb-6" />
+                  <Skeleton className="h-40 w-full" />
+                </div>
+                <div className="rounded-lg border p-6">
+                  <Skeleton className="h-6 w-48 mb-6" />
+                  <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -148,9 +184,7 @@ const Index = () => {
         
         <div className="flex-1 p-6">
           <div className="max-w-5xl mx-auto space-y-8">
-            {isLoading ? (
-              <div className="text-center py-12">Загрузка...</div>
-            ) : profile ? (
+            {profile ? (
               <>
                 <UserProfile profile={profile} />
                 
@@ -165,14 +199,21 @@ const Index = () => {
                 
                 <WordSets title="Словарные наборы" />
               </>
+            ) : !user ? (
+              <div className="text-center py-12">
+                <h2 className="text-2xl font-semibold mb-2">Добро пожаловать в Margo</h2>
+                <p className="text-muted-foreground mb-6">Войдите в систему, чтобы начать обучение</p>
+              </div>
             ) : (
-              <div className="text-center py-12">Профиль не найден</div>
+              <div className="text-center py-12">
+                <h2 className="text-2xl font-semibold mb-2">Профиль не найден</h2>
+                <p className="text-muted-foreground">Пожалуйста, создайте профиль в настройках</p>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Search dialog */}
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
         <CommandInput 
           placeholder="Поиск по тестам, курсам и словарям..." 
