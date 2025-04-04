@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,62 +13,23 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import TestDetail from "./pages/TestDetail";
-import { Skeleton } from "./components/ui/skeleton";
 
-// Create a query client with optimized settings
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 60000, // 1 minute cache
-      gcTime: 300000, // 5 minutes (renamed from cacheTime)
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-// A more responsive loading indicator
-const LoadingScreen = () => (
-  <div className="flex items-center justify-center h-screen">
-    <div className="flex flex-col items-center gap-4">
-      <Skeleton className="h-12 w-12 rounded-full" />
-      <Skeleton className="h-4 w-32" />
-      <p className="text-sm text-muted-foreground animate-pulse">Загрузка...</p>
-    </div>
-  </div>
-);
-
-// Simplified protected route with better error handling
+// Модифицированный защищенный маршрут, который позволяет неаутентифицированным пользователям
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
   
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-  
+  // Без редиректа, просто рендерим дочерние компоненты
   return <>{children}</>;
 };
 
-// Separate the routes into their own component
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   
-  // Add a maximum waiting time for loading
-  React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      console.log("Loading timeout reached - possible auth issue");
-    }, 5000);  // 5 seconds timeout
-    
-    return () => clearTimeout(timeout);
-  }, [loading]);
-  
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
   
   return (
     <Routes>
@@ -105,22 +65,18 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => {
-  console.log("App component rendering");
-  
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

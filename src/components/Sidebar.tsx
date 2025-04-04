@@ -9,7 +9,7 @@ const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const { user, loading, signOut, supabaseInitialized } = useAuth();
+  const { user, signOut, supabaseInitialized } = useAuth();
 
   const isActive = (path: string) => {
     return currentPath === path;
@@ -40,13 +40,6 @@ const Sidebar = () => {
         <div className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded-md mb-4 text-xs flex items-center">
           <AlertCircle className="h-3 w-3 mr-1 flex-shrink-0" />
           <span>Режим разработки</span>
-        </div>
-      )}
-      
-      {loading && (
-        <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-md mb-4 text-xs flex items-center">
-          <AlertCircle className="h-3 w-3 mr-1 flex-shrink-0" />
-          <span>Загрузка...</span>
         </div>
       )}
 
@@ -126,7 +119,6 @@ const Sidebar = () => {
             <button
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/20 transition-colors"
               onClick={user ? handleLogout : handleLogin}
-              disabled={loading}
             >
               {user ? (
                 <>

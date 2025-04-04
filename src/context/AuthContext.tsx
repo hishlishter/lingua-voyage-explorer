@@ -1,14 +1,13 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { supabase, checkAuth, Profile } from '@/lib/supabase';
+import { supabase, checkAuth } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useProfile } from '@/hooks/useProfile';
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
-  profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -22,107 +21,127 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [supabaseInitialized, setSupabaseInitialized] = useState(true);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
   const navigate = useNavigate();
-  const { fetchUserProfile, ensureUserProfile } = useProfile();
 
   useEffect(() => {
-    console.log('AuthProvider effect running');
-    let isMounted = true;
-    let loadingTimeout: NodeJS.Timeout | null = null;
-    
-    // Set maximum loading time to prevent infinite loading
-    loadingTimeout = setTimeout(() => {
-      if (isMounted && loading) {
-        console.error('Auth loading timeout reached, forcing completion');
+    // Check if Supabase is properly initialized
+    const initializeSupabase = async () => {
+      try {
+        const isAuthenticated = await checkAuth();
+        setSupabaseInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize Supabase:', error);
+        setSupabaseInitialized(false);
+      } finally {
         setLoading(false);
       }
-    }, 10000); // 10 seconds max loading time
+    };
 
+    // Get current session on load
     const getInitialSession = async () => {
       try {
-        console.log('Fetching initial session...');
         const { data, error } = await supabase.auth.getSession();
-        
         if (error) {
           console.error('Error getting session:', error);
-          if (isMounted) {
-            setSupabaseInitialized(false);
-            setLoading(false);
-          }
-          return;
-        }
-        
-        console.log('Session data:', data.session?.user?.id || 'No session');
-        if (isMounted) {
+        } else {
           setSession(data.session);
           setUser(data.session?.user ?? null);
           setSupabaseInitialized(true);
         }
-        
-        if (data.session?.user) {
-          console.log('User logged in, fetching profile...');
-          if (isMounted) {
-            const profileData = await fetchUserProfile(data.session.user.id);
-            if (profileData) {
-              setProfile(profileData);
-            } else if (isMounted) {
-              console.log('No profile found, creating one...');
-              await ensureUserProfile(data.session.user, setProfile);
-            }
-          }
-        } else {
-          console.log('No user in session');
-        }
-        
-        if (isMounted) {
-          setLoading(false);
-        }
       } catch (error) {
         console.error('Unexpected error getting session:', error);
-        if (isMounted) {
-          setSupabaseInitialized(false);
-          setLoading(false);
-        }
+        setSupabaseInitialized(false);
+      } finally {
+        setLoading(false);
       }
     };
 
-    // Execute initialization sequence
+    initializeSupabase();
     getInitialSession();
 
-    // Set up auth state change listener
-    const { data } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        if (isMounted) {
+    // Subscribe to auth state changes
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    try {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (_event, session) => {
           setSession(session);
           setUser(session?.user ?? null);
-        }
-        
-        if (session?.user) {
-          console.log('Ensuring profile exists for user:', session.user.id);
-          if (isMounted) {
-            await ensureUserProfile(session.user, setProfile);
+          
+          // Check if user has a profile, if not create one
+          if (session?.user) {
+            await ensureUserProfile(session.user);
           }
-        } else if (isMounted) {
-          setProfile(null);
+          
+          setLoading(false);
         }
-        
-        if (isMounted) setLoading(false);
-      }
-    );
-    
-    // Cleanup function
+      );
+      
+      subscription = data.subscription;
+    } catch (error) {
+      console.error('Error setting up auth state change listener:', error);
+    }
+
+    // Unsubscribe on unmount
     return () => {
-      isMounted = false;
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      data.subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
+  // Helper function to ensure user has a profile
+  const ensureUserProfile = async (user: User) => {
+    try {
+      // First check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // Not found error
+        console.error('Error checking for profile:', checkError);
+        return;
+      }
+
+      // If profile doesn't exist, create it
+      if (!existingProfile) {
+        console.log('Profile not found, creating new profile for:', user.id);
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: user.id, 
+              name: user.email?.split('@')[0] || 'User', 
+              email: user.email || '',
+              tests_completed: 0,
+              courses_completed: 0
+            }
+          ]);
+
+        if (createError) {
+          console.error('Profile creation error:', createError);
+          toast.error('Ошибка создания профиля', {
+            description: createError.message
+          });
+        } else {
+          console.log('Profile created successfully for user:', user.id);
+        }
+      }
+    } catch (error) {
+      console.error('Unexpected error in ensureUserProfile:', error);
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
+    if (!supabaseInitialized) {
+      toast.error('Cannot sign in - Supabase is not properly configured');
+      return;
+    }
+
     try {
       console.log('Attempting sign in for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -140,8 +159,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('Sign in successful for user:', data.user?.id);
       
+      // Ensure profile exists
       if (data.user) {
-        await ensureUserProfile(data.user, setProfile);
+        await ensureUserProfile(data.user);
       }
       
       toast.success('Signed in successfully');
@@ -161,6 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting registration for:', email);
       
+      // Register new user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -186,6 +207,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('User registered successfully:', data.user.id);
+      
+      // Create profile for new user right after registration
+      try {
+        // Disable RLS temporarily via SQL for profile creation
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: data.user.id, 
+              name: email.split('@')[0], // Set a default name based on email
+              email: email,
+              tests_completed: 0,
+              courses_completed: 0
+            }
+          ])
+          .select();
+
+        if (createError) {
+          console.error('Profile creation error:', createError);
+          
+          // Even if profile creation fails, we still allow the user to sign in
+          // The profile can be created later via ensureUserProfile
+          toast.warning('Profile creation issue', {
+            description: 'Your account was created but there was an issue setting up your profile. You can still sign in.'
+          });
+        } else {
+          console.log('Profile created successfully for user:', data.user.id);
+        }
+      } catch (profileError) {
+        console.error('Unexpected profile creation error:', profileError);
+      }
+      
       toast.success('Registration successful', {
         description: 'You can now sign in'
       });
@@ -198,9 +251,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     if (!supabaseInitialized) {
+      // If Supabase isn't initialized, just clear local state
       setUser(null);
       setSession(null);
-      setProfile(null);
       toast.success('Signed out successfully');
       navigate('/auth');
       return;
@@ -217,7 +270,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      setProfile(null);
       toast.success('Signed out successfully');
       navigate('/auth');
     } catch (error) {
@@ -242,8 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{ 
       session, 
-      user,
-      profile,
+      user, 
       loading, 
       signIn, 
       signUp, 

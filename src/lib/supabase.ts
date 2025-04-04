@@ -1,9 +1,21 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Use the specific Supabase URLs and keys provided in the user configuration
-const supabaseUrl = 'https://ejyyiilgghontvdrwuns.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3OTYwNzEsImV4cCI6MjA1OTM3MjA3MX0.ZMx420McFLRUBtg88_ll13_h3u7QmT7WmRaLU4VNZuc';
+// Default development values (these will be used if no env variables are set)
+const devSupabaseUrl = 'https://ejyyiilgghontvdrwuns.supabase.co';
+const devSupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3OTYwNzEsImV4cCI6MjA1OTM3MjA3MX0.ZMx420McFLRUBtg88_ll13_h3u7QmT7WmRaLU4VNZuc';
+
+// Use environment variables with correct Vite naming convention if available, otherwise use development defaults
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.REACT_APP_SUPABASE_URL || devSupabaseUrl;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.REACT_APP_SUPABASE_ANON_KEY || devSupabaseKey;
+
+// Log missing environment variables warning
+if (
+  (!import.meta.env.VITE_SUPABASE_URL && !import.meta.env.REACT_APP_SUPABASE_URL) || 
+  (!import.meta.env.VITE_SUPABASE_ANON_KEY && !import.meta.env.REACT_APP_SUPABASE_ANON_KEY)
+) {
+  console.warn('Using development Supabase configuration. For production, please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+}
 
 // Create and export Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -13,7 +25,6 @@ export type Profile = {
   id: string;
   name: string;
   email: string;
-  avatar_url?: string;
   tests_completed: number;
   courses_completed: number;
   created_at?: string;
@@ -44,30 +55,6 @@ export type Option = {
   question_id: string;
   text: string;
   is_correct: boolean;
-  created_at?: string;
-};
-
-export type TestResult = {
-  id: string;
-  user_id: string;
-  test_id: string;
-  score: number;
-  total_questions: number;
-  completed_at: string;
-};
-
-export type Word = {
-  id: string;
-  word: string;
-  translation: string;
-  example?: string;
-  created_at?: string;
-};
-
-export type WordSet = {
-  id: string;
-  title: string;
-  description?: string;
   created_at?: string;
 };
 
