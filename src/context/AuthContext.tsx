@@ -61,11 +61,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
+      // Создаем пользователя в Auth
       const { error, data } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
-          data: { name }
+          data: { 
+            full_name: name  // Сохраняем имя в пользовательских данных Auth
+          }
         }
       });
 
@@ -76,15 +79,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Create user profile record
+      // Создаем запись в таблице profiles
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             { 
               id: data.user.id, 
-              name, 
-              email,
+              name: name,  // Сохраняем имя в таблице profiles
+              email: email,
               tests_completed: 0,
               courses_completed: 0
             }
@@ -92,17 +95,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (profileError) {
           console.error('Ошибка создания профиля:', profileError);
+          toast.error('Ошибка создания профиля', {
+            description: profileError.message
+          });
         }
       }
       
       toast.success('Регистрация успешна', {
         description: 'Теперь вы можете войти в систему'
       });
+      
+      // После успешной регистрации переключаемся на форму входа
+      setIsLogin(true);
     } catch (error) {
       console.error('Ошибка регистрации:', error);
       toast.error('Произошла ошибка при регистрации');
     }
   };
+
+  const [isLogin, setIsLogin] = useState(true);
 
   const signOut = async () => {
     try {

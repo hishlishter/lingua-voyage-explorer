@@ -76,6 +76,7 @@ const Auth = () => {
   const onRegisterSubmit = async (values: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
+      // Важно: правильная передача имени пользователя
       await signUp(values.email, values.password, values.name);
       setIsLogin(true);
     } finally {
