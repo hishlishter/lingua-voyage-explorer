@@ -1,15 +1,15 @@
 
 import React from 'react';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog";
-import { CircleCheck, CircleX } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Award } from 'lucide-react';
 
 interface TestResultProps {
   open: boolean;
@@ -19,52 +19,65 @@ interface TestResultProps {
   testTitle: string;
 }
 
-const TestResult: React.FC<TestResultProps> = ({ 
-  open, 
-  onClose, 
-  score, 
+const TestResult: React.FC<TestResultProps> = ({
+  open,
+  onClose,
+  score,
   totalQuestions,
-  testTitle
+  testTitle,
 }) => {
   const percentage = Math.round((score / totalQuestions) * 100);
-  const isPassed = percentage >= 70;
+  
+  let message = '';
+  let color = '';
+  
+  if (percentage >= 90) {
+    message = 'Отлично! Вы отлично справились!';
+    color = 'text-green-600';
+  } else if (percentage >= 70) {
+    message = 'Хорошо! Вы хорошо справились!';
+    color = 'text-blue-600';
+  } else if (percentage >= 50) {
+    message = 'Неплохо! Но есть над чем поработать.';
+    color = 'text-yellow-600';
+  } else {
+    message = 'Стоит повторить материал и попробовать снова.';
+    color = 'text-red-600';
+  }
   
   return (
-    <AlertDialog open={open}>
-      <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Результаты теста: {testTitle}</AlertDialogTitle>
-          <AlertDialogDescription>
-            <div className="flex flex-col items-center py-6">
-              <div className={`text-6xl mb-4 ${isPassed ? 'text-green-500' : 'text-red-500'}`}>
-                {isPassed ? <CircleCheck /> : <CircleX />}
-              </div>
-              
-              <div className="text-3xl font-bold mb-2">
-                {score} / {totalQuestions}
-              </div>
-              
-              <div className="text-lg mb-4">
-                {percentage}% правильных ответов
-              </div>
-              
-              <div className="text-center">
-                {isPassed ? (
-                  <p>Поздравляем! Вы успешно прошли тест.</p>
-                ) : (
-                  <p>Попробуйте еще раз, чтобы улучшить свой результат.</p>
-                )}
-              </div>
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={onClose}>
-            {isPassed ? 'Вернуться к тестам' : 'Попробовать снова'}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-center">Результаты теста</DialogTitle>
+        </DialogHeader>
+        
+        <div className="py-6 flex flex-col items-center">
+          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Award size={40} className="text-primary" />
+          </div>
+          
+          <h3 className="text-xl font-bold mb-1">{testTitle}</h3>
+          <p className={`text-center ${color} font-medium mb-4`}>{message}</p>
+          
+          <div className="flex items-center justify-center gap-2 text-2xl font-bold mb-2">
+            <span>{score}</span>
+            <span className="text-gray-400">/</span>
+            <span>{totalQuestions}</span>
+          </div>
+          
+          <div className="w-full mb-2">
+            <Progress value={percentage} className="h-2" />
+          </div>
+          
+          <p className="text-sm text-muted-foreground">{percentage}% правильных ответов</p>
+        </div>
+        
+        <DialogFooter>
+          <Button onClick={onClose} className="w-full">Закрыть</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,80 +1,53 @@
 
--- First check if the test user exists in the auth.users table
+-- Добавляем тестовые данные для профиля пользователя
+INSERT INTO profiles (id, name, email, tests_completed, courses_completed, created_at)
+VALUES 
+  ('00000000-0000-0000-0000-000000000000', 'Тестовый Пользователь', 'test@example.com', 8, 3, now())
+ON CONFLICT (id) DO UPDATE 
+  SET name = EXCLUDED.name, 
+      email = EXCLUDED.email;
+
+-- Добавляем тестовые данные для результатов тестов
+INSERT INTO test_results (id, user_id, test_id, score, total_questions, created_at)
+VALUES 
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '1', 8, 10, now() - interval '1 day'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '2', 9, 10, now() - interval '2 day'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '1', 7, 10, now() - interval '10 day'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '3', 6, 10, now() - interval '20 day'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '2', 8, 10, now() - interval '30 day'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '1', 9, 10, now() - interval '40 day'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '3', 10, 10, now() - interval '50 day'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '2', 8, 10, now() - interval '60 day');
+
+-- Добавляем колонку для URL аватара, если ее еще нет
 DO $$
-DECLARE
-  test_user_id UUID;
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM auth.users WHERE email = 'test@example.com'
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'profiles' AND column_name = 'avatar_url'
   ) THEN
-    -- Insert test user if not exists
-    INSERT INTO auth.users (
-      instance_id,
-      id,
-      aud,
-      role,
-      email,
-      encrypted_password,
-      email_confirmed_at,
-      recovery_sent_at,
-      last_sign_in_at,
-      raw_app_meta_data,
-      raw_user_meta_data,
-      created_at,
-      updated_at,
-      confirmation_token,
-      email_change,
-      email_change_token_new,
-      recovery_token
-    ) 
-    VALUES (
-      '00000000-0000-0000-0000-000000000000',
-      uuid_generate_v4(),
-      'authenticated',
-      'authenticated',
-      'test@example.com',
-      -- This is a hash for 'password123'
-      crypt('password123', gen_salt('bf')),
-      NOW(),
-      null,
-      NOW(),
-      '{"provider": "email", "providers": ["email"]}',
-      '{"name": "Test User"}',
-      NOW(),
-      NOW(),
-      '',
-      '',
-      '',
-      ''
-    )
-    RETURNING id INTO test_user_id;
-  ELSE
-    -- Get the user ID for the existing test user
-    SELECT id INTO test_user_id FROM auth.users WHERE email = 'test@example.com';
+    ALTER TABLE profiles ADD COLUMN avatar_url TEXT;
   END IF;
-    
-  -- Temporarily disable RLS to ensure we can create the profile
-  ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
-    
-  -- Create profile for test user if it doesn't exist
-  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = test_user_id) THEN
-    INSERT INTO public.profiles (
-      id,
-      name,
-      email,
-      tests_completed,
-      courses_completed,
-      created_at
-    ) VALUES (
-      test_user_id,
-      'Test User',
-      'test@example.com',
-      0,
-      0,
-      NOW()
-    );
-  END IF;
-    
-  -- Re-enable RLS
-  ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 END $$;
+
+-- Создаем бакет для аватаров, если его еще нет
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS политика для бакета аватаров
+CREATE POLICY "Avatar files are publicly accessible."
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can upload their own avatars."
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'avatars');
+
+CREATE POLICY "Users can update their own avatars."
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can delete their own avatars."
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'avatars');

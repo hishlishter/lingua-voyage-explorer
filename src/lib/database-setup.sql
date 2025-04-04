@@ -1,222 +1,125 @@
 
--- Таблица профилей пользователей
+-- Create tables
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  name TEXT,
+  name TEXT NOT NULL,
   email TEXT NOT NULL,
+  tests_completed INT DEFAULT 0,
+  courses_completed INT DEFAULT 0,
   avatar_url TEXT,
-  tests_completed INTEGER DEFAULT 0,
-  courses_completed INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Создаем RLS (Row Level Security) для таблицы profiles
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
--- Политики доступа для profiles
--- Пользователи могут читать свой собственный профиль
-CREATE POLICY "Пользователи могут читать свой профиль" 
-  ON profiles FOR SELECT 
-  USING (auth.uid() = id);
-
--- Пользователи могут обновлять свой собственный профиль
-CREATE POLICY "Пользователи могут обновлять свой профиль" 
-  ON profiles FOR UPDATE 
-  USING (auth.uid() = id);
-
--- Разрешаем вставку профилей при регистрации (важно!)
-CREATE POLICY "Разрешаем вставку новых профилей" 
-  ON profiles FOR INSERT 
-  WITH CHECK (true); -- Разрешаем вставку всем, так как профили создаются при регистрации
-
--- Таблица тестов
 CREATE TABLE IF NOT EXISTS tests (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
-  image TEXT,
-  level TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  difficulty TEXT NOT NULL,
+  questions_count INT NOT NULL,
+  time_limit INT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Таблица вопросов
 CREATE TABLE IF NOT EXISTS questions (
-  id SERIAL PRIMARY KEY,
-  test_id INTEGER REFERENCES tests(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  test_id UUID NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  order_num INT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Таблица вариантов ответов
 CREATE TABLE IF NOT EXISTS options (
-  id SERIAL PRIMARY KEY,
-  question_id INTEGER REFERENCES questions(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
-  is_correct BOOLEAN DEFAULT false
+  is_correct BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Таблица результатов тестов
 CREATE TABLE IF NOT EXISTS test_results (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
-  test_id INTEGER REFERENCES tests(id) ON DELETE CASCADE,
-  score INTEGER NOT NULL,
-  total_questions INTEGER NOT NULL,
-  completed_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  test_id UUID NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+  score INT NOT NULL,
+  total_questions INT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- RLS для таблицы test_results
+-- Set up RLS (Row Level Security)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE test_results ENABLE ROW LEVEL SECURITY;
 
--- Политики доступа для test_results
-CREATE POLICY "Пользователи могут читать свои результаты" 
-  ON test_results FOR SELECT 
+-- Create policies
+-- Profiles
+CREATE POLICY "Public profiles are viewable by everyone."
+  ON profiles FOR SELECT
+  USING (TRUE);
+
+CREATE POLICY "Users can update their own profile."
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+-- Tests
+CREATE POLICY "Tests are viewable by everyone."
+  ON tests FOR SELECT
+  USING (TRUE);
+
+-- Questions
+CREATE POLICY "Questions are viewable by everyone."
+  ON questions FOR SELECT
+  USING (TRUE);
+
+-- Options
+CREATE POLICY "Options are viewable by everyone."
+  ON options FOR SELECT
+  USING (TRUE);
+
+-- Test Results
+CREATE POLICY "Users can view their own test results."
+  ON test_results FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Пользователи могут добавлять свои результаты" 
-  ON test_results FOR INSERT 
+CREATE POLICY "Users can insert their own test results."
+  ON test_results FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- Таблица курсов
-CREATE TABLE IF NOT EXISTS courses (
-  id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT,
-  image TEXT,
-  level TEXT,
-  lessons_count INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
+-- Create public storage bucket for user avatars
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', TRUE)
+ON CONFLICT (id) DO NOTHING;
 
--- Таблица уроков
-CREATE TABLE IF NOT EXISTS lessons (
-  id SERIAL PRIMARY KEY,
-  course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  content TEXT,
-  order_number INTEGER,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
+-- Storage RLS
+CREATE POLICY "Avatar files are publicly accessible."
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'avatars');
 
--- Таблица прогресса по курсам
-CREATE TABLE IF NOT EXISTS course_progress (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
-  course_id INTEGER REFERENCES courses(id) ON DELETE CASCADE,
-  lessons_completed INTEGER DEFAULT 0,
-  completed BOOLEAN DEFAULT false,
-  last_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  UNIQUE(user_id, course_id)
-);
+CREATE POLICY "Users can upload their own avatars."
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'avatars');
 
--- RLS для таблицы course_progress
-ALTER TABLE course_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can update their own avatars."
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'avatars');
 
--- Политики доступа для course_progress
-CREATE POLICY "Пользователи могут читать свой прогресс" 
-  ON course_progress FOR SELECT 
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own avatars."
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'avatars');
 
-CREATE POLICY "Пользователи могут добавлять свой прогресс" 
-  ON course_progress FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Пользователи могут обновлять свой прогресс" 
-  ON course_progress FOR UPDATE 
-  USING (auth.uid() = user_id);
-
--- Таблица словаря
-CREATE TABLE IF NOT EXISTS dictionary (
-  id SERIAL PRIMARY KEY,
-  word TEXT NOT NULL,
-  translation TEXT NOT NULL,
-  example TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
-
--- Таблица сетов слов (наборов для изучения)
-CREATE TABLE IF NOT EXISTS word_sets (
-  id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
-);
-
--- Связующая таблица между словами и сетами
-CREATE TABLE IF NOT EXISTS word_set_items (
-  id SERIAL PRIMARY KEY,
-  word_set_id INTEGER REFERENCES word_sets(id) ON DELETE CASCADE,
-  word_id INTEGER REFERENCES dictionary(id) ON DELETE CASCADE,
-  UNIQUE(word_set_id, word_id)
-);
-
--- Таблица прогресса пользователя по словарю
-CREATE TABLE IF NOT EXISTS user_word_progress (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
-  word_id INTEGER REFERENCES dictionary(id) ON DELETE CASCADE,
-  learned BOOLEAN DEFAULT false,
-  last_reviewed_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  UNIQUE(user_id, word_id)
-);
-
--- RLS для таблицы user_word_progress
-ALTER TABLE user_word_progress ENABLE ROW LEVEL SECURITY;
-
--- Политики доступа для user_word_progress
-CREATE POLICY "Пользователи могут читать свой прогресс по словам" 
-  ON user_word_progress FOR SELECT 
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Пользователи могут добавлять свой прогресс по словам" 
-  ON user_word_progress FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Пользователи могут обновлять свой прогресс по словам" 
-  ON user_word_progress FOR UPDATE 
-  USING (auth.uid() = user_id);
-
--- Триггерная функция для обновления количества завершенных тестов
-CREATE OR REPLACE FUNCTION update_tests_completed()
+-- Create functions
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE profiles
-  SET tests_completed = (
-    SELECT COUNT(DISTINCT test_id)
-    FROM test_results
-    WHERE user_id = NEW.user_id
-  )
-  WHERE id = NEW.user_id;
-  RETURN NEW;
+  INSERT INTO public.profiles (id, name, email)
+  VALUES (new.id, new.raw_user_meta_data->>'name', new.email);
+  RETURN new;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Триггер для обновления количества завершенных тестов
-CREATE TRIGGER after_test_result_insert
-AFTER INSERT ON test_results
-FOR EACH ROW
-EXECUTE FUNCTION update_tests_completed();
-
--- Триггерная функция для обновления количества завершенных курсов
-CREATE OR REPLACE FUNCTION update_courses_completed()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.completed = true THEN
-    UPDATE profiles
-    SET courses_completed = (
-      SELECT COUNT(*)
-      FROM course_progress
-      WHERE user_id = NEW.user_id AND completed = true
-    )
-    WHERE id = NEW.user_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Триггер для обновления количества завершенных курсов
-CREATE TRIGGER after_course_progress_update
-AFTER UPDATE ON course_progress
-FOR EACH ROW
-WHEN (OLD.completed IS DISTINCT FROM NEW.completed)
-EXECUTE FUNCTION update_courses_completed();
+-- Create trigger for new user
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();

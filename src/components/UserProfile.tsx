@@ -7,16 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase, Profile } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 const UserProfile = () => {
   const { user } = useAuth();
-  const [avatar, setAvatar] = useState('/lovable-uploads/e4b09532-4201-484c-9fbf-205eebe30a2f.png');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempAvatarURL, setTempAvatarURL] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
       if (!user) return null;
@@ -37,18 +38,62 @@ const UserProfile = () => {
     enabled: !!user
   });
 
+  const updateAvatarMutation = useMutation({
+    mutationFn: async (avatarUrl: string) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Аватар успешно обновлен');
+      refetch();
+    },
+    onError: (error) => {
+      toast.error('Ошибка при обновлении аватара');
+      console.error('Update avatar error:', error);
+    }
+  });
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const fileURL = URL.createObjectURL(file);
       setTempAvatarURL(fileURL);
+      setAvatarFile(file);
     }
   };
 
-  const saveAvatar = () => {
-    if (tempAvatarURL) {
-      setAvatar(tempAvatarURL);
+  const saveAvatar = async () => {
+    if (!avatarFile || !user) return;
+    
+    try {
+      // First upload the file to Supabase storage
+      const fileName = `avatar-${user.id}-${Date.now()}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, avatarFile);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      
+      const avatarUrl = publicUrlData.publicUrl;
+      
+      // Update the profile with the avatar URL
+      await updateAvatarMutation.mutateAsync(avatarUrl);
+      
       setDialogOpen(false);
+    } catch (error) {
+      toast.error('Ошибка при загрузке изображения');
+      console.error('Avatar upload error:', error);
     }
   };
 
@@ -82,7 +127,7 @@ const UserProfile = () => {
         <DialogTrigger asChild>
           <div className="relative cursor-pointer group">
             <Avatar className="w-24 h-24 border-4 border-white shadow-md">
-              <AvatarImage src={avatar} />
+              <AvatarImage src={profile.avatar_url || '/placeholder.svg'} />
               <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -97,7 +142,7 @@ const UserProfile = () => {
           <div className="space-y-4">
             <div className="flex justify-center">
               <Avatar className="w-24 h-24">
-                <AvatarImage src={tempAvatarURL || avatar} />
+                <AvatarImage src={tempAvatarURL || profile.avatar_url || '/placeholder.svg'} />
                 <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
               </Avatar>
             </div>
