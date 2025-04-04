@@ -19,7 +19,6 @@ if (
 
 // Create and export Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  debug: true,
   auth: {
     persistSession: true,
     autoRefreshToken: true
