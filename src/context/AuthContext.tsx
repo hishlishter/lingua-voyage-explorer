@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -59,17 +59,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string) => {
     try {
       // Создаем пользователя в Auth
       const { error, data } = await supabase.auth.signUp({ 
         email, 
-        password,
-        options: {
-          data: { 
-            full_name: name  // Сохраняем имя в пользовательских данных Auth
-          }
-        }
+        password
       });
 
       if (error) {
@@ -79,14 +74,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Создаем запись в таблице profiles
+      // Создаем запись в таблице profiles с пустым именем
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             { 
               id: data.user.id, 
-              name: name,  // Сохраняем имя в таблице profiles
+              name: "",  // Пустое имя, которое будет заполнено позже в настройках
               email: email,
               tests_completed: 0,
               courses_completed: 0

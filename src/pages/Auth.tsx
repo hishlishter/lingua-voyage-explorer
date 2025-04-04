@@ -29,7 +29,6 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Имя должно содержать минимум 2 символа"),
   email: z.string().email("Введите корректный email"),
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
   confirmPassword: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
@@ -57,7 +56,6 @@ const Auth = () => {
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -76,7 +74,7 @@ const Auth = () => {
   const onRegisterSubmit = async (values: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
-      await signUp(values.email, values.password, values.name);
+      await signUp(values.email, values.password);
     } finally {
       setIsSubmitting(false);
     }
@@ -143,20 +141,6 @@ const Auth = () => {
           ) : (
             <Form {...registerForm}>
               <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                <FormField
-                  control={registerForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Имя</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Иван Иванов" autoComplete="name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
                 <FormField
                   control={registerForm.control}
                   name="email"
