@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, createOrUpdateProfile, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -23,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,11 +30,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setLoading(true);
         
+        // Check if Supabase is initialized correctly
+        const checkResult = await supabase.auth.getSession();
+        console.log('Supabase initialization check:', checkResult);
+        
         // Get initial session
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = checkResult;
+        
         if (error) {
           console.error('Error getting session:', error);
+          setSupabaseInitialized(false);
         } else {
+          setSupabaseInitialized(true);
           setSession(data.session);
           setUser(data.session?.user ?? null);
           
@@ -44,11 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await ensureUserProfile(data.session.user);
           }
         }
-        
-        setSupabaseInitialized(true);
       } catch (error) {
         console.error('Unexpected error during initialization:', error);
-        setSupabaseInitialized(true);
+        setSupabaseInitialized(false);
       } finally {
         setLoading(false);
       }
@@ -118,7 +122,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (!supabaseInitialized) {
-      toast.error('Cannot sign in - Supabase is not properly configured');
+      console.log('Attempting to sign in with Supabase not properly configured');
+      toast.warning('Supabase не настроен', {
+        description: 'Используйте тестовый аккаунт для входа'
+      });
       return;
     }
 
@@ -133,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('Sign in error:', error);
-        toast.error('Sign in failed', {
+        toast.error('Ошибка входа', {
           description: error.message
         });
         return;
@@ -146,11 +153,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await ensureUserProfile(data.user);
       }
       
-      toast.success('Signed in successfully');
+      toast.success('Вход выполнен успешно');
       navigate('/');
     } catch (error) {
       console.error('Unexpected sign in error:', error);
-      toast.error('An error occurred during sign in');
+      toast.error('Произошла ошибка при входе');
     } finally {
       setLoading(false);
     }
@@ -178,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Registration error:', error);
-        toast.error('Registration failed', {
+        toast.error('Ошибка регистрации', {
           description: error.message
         });
         return;
@@ -186,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!data.user) {
         console.error('User not created');
-        toast.error('User not created');
+        toast.error('Пользователь не создан');
         return;
       }
 
@@ -199,13 +206,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Profile created successfully during signup');
       }
       
-      toast.success('Registration successful', {
-        description: 'You can now sign in'
+      toast.success('Регистрация выполнена успешно', {
+        description: 'Вы можете войти'
       });
       navigate('/auth');
     } catch (error) {
       console.error('Unexpected registration error:', error);
-      toast.error('An error occurred during registration');
+      toast.error('Произошла ошибка при регистрации');
     } finally {
       setLoading(false);
     }
@@ -223,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error } = await supabase.auth.signOut();
         if (error) {
           console.error('Sign out error:', error);
-          toast.error('Sign out failed', {
+          toast.error('Ошибка выхода', {
             description: error.message
           });
           return;
@@ -233,11 +240,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       
-      toast.success('Signed out successfully');
+      toast.success('Выход выполнен успешно');
       navigate('/auth');
     } catch (error) {
       console.error('Unexpected sign out error:', error);
-      toast.error('An error occurred during sign out');
+      toast.error('Произошла ошибка при выходе');
     } finally {
       setLoading(false);
     }
@@ -290,11 +297,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       localStorage.setItem(`profile_${testUser.id}`, JSON.stringify(testProfile));
       
-      toast.success('Signed in with test account');
+      toast.success('Вход выполнен с тестовым аккаунтом');
       navigate('/');
     } catch (error) {
       console.error('Test account sign in error:', error);
-      toast.error('Error signing in with test account');
+      toast.error('Ошибка входа с тестовым аккаунтом');
     } finally {
       setLoading(false);
     }
