@@ -38,9 +38,19 @@ const Index = () => {
     retry: 1,
     staleTime: 30000,
     refetchOnWindowFocus: false,
-    // Добавим настройки для пропуска загрузочных экранов
-    initialData: user?.id ? null : undefined,
-    placeholderData: prev => prev,
+    // Skip loading states
+    placeholderData: () => {
+      if (user?.id) {
+        return {
+          id: user.id,
+          name: user.user_metadata?.name || 'Пользователь',
+          email: user.email || '',
+          tests_completed: 0,
+          courses_completed: 0
+        } as Profile;
+      }
+      return null;
+    },
   });
 
   const handleRetry = () => {
@@ -57,7 +67,7 @@ const Index = () => {
         <div className="flex-1 p-6">
           <div className="max-w-5xl mx-auto space-y-8">
             <ProfileLoadingStates
-              isLoading={false} // Всегда отключаем загрузочное состояние
+              isLoading={false} // Always disable loading state
               isError={isError}
               user={user}
               profile={profile}

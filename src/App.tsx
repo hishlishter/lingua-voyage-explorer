@@ -26,16 +26,14 @@ const queryClient = new QueryClient({
 
 // Модифицированный защищенный маршрут, который не показывает загрузку
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { loading } = useAuth();
-  
-  // Всегда отображаем контент без загрузки
+  // Always render children without loading checks
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   
-  // Пропускаем экран загрузки
+  // Always skip loading screens
   return (
     <Routes>
       <Route path="/" element={<Index />} />

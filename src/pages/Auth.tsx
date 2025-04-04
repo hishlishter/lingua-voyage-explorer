@@ -46,7 +46,7 @@ const Auth = () => {
                   <h3 className="font-semibold">Supabase не настроен</h3>
                   <p className="text-sm">
                     Приложение работает в режиме разработки без настроенного Supabase.
-                    Вы можете продолжить и использовать тестовую учетную запись, но некоторые функции могут быть недоступны.
+                    Используйте тестовую учетную запись для входа.
                   </p>
                 </div>
               </div>
@@ -99,12 +99,7 @@ const Auth = () => {
                 </form>
               </CardContent>
               <CardFooter className="flex flex-col">
-                <div className="text-sm text-gray-500 mb-4">
-                  Тестовый аккаунт: <br />
-                  Email: test@example.com <br />
-                  Пароль: password123
-                </div>
-                <Button variant="outline" onClick={signInWithTestAccount} className="w-full">
+                <Button variant="secondary" onClick={signInWithTestAccount} className="w-full">
                   Войти с тестовым аккаунтом
                 </Button>
               </CardFooter>
