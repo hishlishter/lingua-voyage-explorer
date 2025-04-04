@@ -24,18 +24,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Получаем текущую сессию при загрузке
+    // Get current session on load
     const getInitialSession = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Ошибка получения сессии:', error);
+          console.error('Error getting session:', error);
         } else {
           setSession(data.session);
           setUser(data.session?.user ?? null);
         }
       } catch (error) {
-        console.error('Неожиданная ошибка при получении сессии:', error);
+        console.error('Unexpected error getting session:', error);
       } finally {
         setLoading(false);
       }
@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     getInitialSession();
 
-    // Подписываемся на изменения состояния аутентификации
+    // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -52,40 +52,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Отписываемся при размонтировании компонента
+    // Unsubscribe on unmount
     return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('Попытка входа для:', email);
+      console.log('Attempting sign in for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
-        console.error('Ошибка входа:', error);
-        toast.error('Ошибка входа', {
+        console.error('Sign in error:', error);
+        toast.error('Sign in failed', {
           description: error.message
         });
         return;
       }
       
-      console.log('Вход успешен для пользователя:', data.user?.id);
-      toast.success('Вход выполнен успешно');
+      console.log('Sign in successful for user:', data.user?.id);
+      toast.success('Signed in successfully');
       navigate('/');
     } catch (error) {
-      console.error('Непредвиденная ошибка входа:', error);
-      toast.error('Произошла ошибка при входе');
+      console.error('Unexpected sign in error:', error);
+      toast.error('An error occurred during sign in');
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
-      console.log('Попытка регистрации для:', email);
+      console.log('Attempting registration for:', email);
       
-      // Регистрация нового пользователя
+      // Register new user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -97,22 +97,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Ошибка регистрации:', error);
-        toast.error('Ошибка регистрации', {
+        console.error('Registration error:', error);
+        toast.error('Registration failed', {
           description: error.message
         });
         return;
       }
 
       if (!data.user) {
-        console.error('Пользователь не создан');
-        toast.error('Пользователь не создан');
+        console.error('User not created');
+        toast.error('User not created');
         return;
       }
 
-      console.log('Пользователь успешно зарегистрирован:', data.user.id);
+      console.log('User registered successfully:', data.user.id);
       
-      // Создаем профиль для нового пользователя
+      // Create profile for new user
       try {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -127,23 +127,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ]);
 
         if (profileError) {
-          console.error('Ошибка создания профиля:', profileError);
-          toast.error('Ошибка создания профиля', {
+          console.error('Profile creation error:', profileError);
+          toast.error('Profile creation failed', {
             description: profileError.message
           });
           return;
         }
       } catch (profileError) {
-        console.error('Непредвиденная ошибка при создании профиля:', profileError);
+        console.error('Unexpected profile creation error:', profileError);
       }
       
-      toast.success('Регистрация успешна', {
-        description: 'Теперь вы можете войти в систему'
+      toast.success('Registration successful', {
+        description: 'You can now sign in'
       });
       navigate('/auth');
     } catch (error) {
-      console.error('Непредвиденная ошибка регистрации:', error);
-      toast.error('Произошла ошибка при регистрации');
+      console.error('Unexpected registration error:', error);
+      toast.error('An error occurred during registration');
     }
   };
 
@@ -152,18 +152,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Ошибка выхода:', error);
-        toast.error('Ошибка выхода', {
+        console.error('Sign out error:', error);
+        toast.error('Sign out failed', {
           description: error.message
         });
         return;
       }
       
-      toast.success('Выход выполнен успешно');
+      toast.success('Signed out successfully');
       navigate('/auth');
     } catch (error) {
-      console.error('Непредвиденная ошибка выхода:', error);
-      toast.error('Произошла ошибка при выходе из системы');
+      console.error('Unexpected sign out error:', error);
+      toast.error('An error occurred during sign out');
     }
   };
 
@@ -172,11 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const testEmail = "test@example.com";
       const testPassword = "password123";
       
-      console.log("Вход с тестовым аккаунтом...");
+      console.log("Signing in with test account...");
       await signIn(testEmail, testPassword);
     } catch (error) {
-      console.error('Ошибка при входе с тестовым аккаунтом:', error);
-      toast.error('Произошла ошибка при входе с тестовым аккаунтом');
+      console.error('Test account sign in error:', error);
+      toast.error('Error signing in with test account');
     }
   };
 
