@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertCircle } from 'lucide-react';
 
 const Auth = () => {
-  const { signIn, signUp, signInWithTestAccount } = useAuth();
+  const { signIn, signUp, signInWithTestAccount, supabaseInitialized } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +37,23 @@ const Auth = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100">
       <div className="w-full max-w-md p-4">
+        {!supabaseInitialized && (
+          <Card className="mb-4 border-yellow-400">
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-2 text-yellow-600">
+                <AlertCircle className="h-5 w-5 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">Supabase не настроен</h3>
+                  <p className="text-sm">
+                    Приложение работает в режиме разработки без настроенного Supabase.
+                    Вы можете продолжить и использовать тестовую учетную запись, но некоторые функции могут быть недоступны.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="signin">Вход</TabsTrigger>

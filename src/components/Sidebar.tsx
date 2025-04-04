@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Book, BookOpen, Brain, Settings, LogOut, Home, LogIn } from 'lucide-react';
+import { Book, BookOpen, Brain, Settings, LogOut, Home, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
@@ -9,7 +9,7 @@ const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const { user, signOut } = useAuth();
+  const { user, signOut, supabaseInitialized } = useAuth();
 
   const isActive = (path: string) => {
     return currentPath === path;
@@ -35,6 +35,13 @@ const Sidebar = () => {
           </div>
         </Link>
       </div>
+
+      {!supabaseInitialized && (
+        <div className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded-md mb-4 text-xs flex items-center">
+          <AlertCircle className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span>Режим разработки</span>
+        </div>
+      )}
 
       <nav className="flex-1">
         <ul className="space-y-2">

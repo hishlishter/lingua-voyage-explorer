@@ -8,7 +8,7 @@ interface AuthLayoutProps {
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, supabaseInitialized } = useAuth();
   
   // Show loading indicator while auth state is being determined
   if (loading) {
@@ -22,8 +22,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
     );
   }
   
-  // User is authenticated, show sidebar layout
-  if (user) {
+  // User is authenticated or we're in development mode without Supabase, show sidebar layout
+  if (user || !supabaseInitialized) {
     return (
       <div className="flex min-h-screen">
         <Sidebar />
