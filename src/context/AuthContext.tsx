@@ -104,16 +104,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Регистрация успешна', {
         description: 'Теперь вы можете войти в систему'
       });
-      
-      // После успешной регистрации переключаемся на форму входа
-      setIsLogin(true);
+      navigate('/auth');
     } catch (error) {
       console.error('Ошибка регистрации:', error);
       toast.error('Произошла ошибка при регистрации');
     }
   };
-
-  const [isLogin, setIsLogin] = useState(true);
 
   const signOut = async () => {
     try {

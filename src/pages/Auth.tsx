@@ -76,9 +76,7 @@ const Auth = () => {
   const onRegisterSubmit = async (values: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
-      // Важно: правильная передача имени пользователя
       await signUp(values.email, values.password, values.name);
-      setIsLogin(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -152,7 +150,7 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Имя</FormLabel>
                       <FormControl>
-                        <Input placeholder="Иван Иванов" {...field} />
+                        <Input placeholder="Иван Иванов" autoComplete="name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -166,7 +164,7 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="you@example.com" {...field} />
+                        <Input placeholder="you@example.com" autoComplete="email" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -180,7 +178,7 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Пароль</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="******" {...field} />
+                        <Input type="password" placeholder="******" autoComplete="new-password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -194,7 +192,7 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Подтвердите пароль</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="******" {...field} />
+                        <Input type="password" placeholder="******" autoComplete="new-password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
