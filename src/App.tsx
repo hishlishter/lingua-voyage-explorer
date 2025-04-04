@@ -19,6 +19,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/courses" element={<Index />} /> {/* Placeholder for now */}
+          <Route path="/dictionary" element={<Index />} /> {/* Placeholder for now */}
+          <Route path="/lessons" element={<Index />} /> {/* Placeholder for now */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
