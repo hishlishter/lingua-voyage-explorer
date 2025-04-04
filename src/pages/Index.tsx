@@ -1,6 +1,6 @@
 
 import React, { Suspense } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, Profile } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   // Create fallback profile for immediate display
   const fallbackProfile = user ? {
@@ -50,7 +51,38 @@ const Index = () => {
         
         if (error) {
           console.error('Error fetching profile:', error);
-          // If we have a cached profile, use it instead of fallback
+          
+          // If profile doesn't exist, create one
+          if (error.code === 'PGRST116') {
+            console.log('Profile not found, creating new profile');
+            
+            const newProfile: Profile = {
+              id: user.id,
+              name: user.user_metadata?.name || 'Пользователь',
+              email: user.email || '',
+              tests_completed: 0,
+              courses_completed: 0
+            };
+            
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([newProfile]);
+              
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+              return cachedProfile || fallbackProfile;
+            }
+            
+            console.log('Profile created successfully');
+            localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
+            
+            // Invalidate and refetch to ensure UI consistency
+            queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+            
+            return newProfile;
+          }
+          
+          // Return best available data
           return cachedProfile || fallbackProfile;
         }
         

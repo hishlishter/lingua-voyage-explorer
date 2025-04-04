@@ -18,7 +18,61 @@ if (
 }
 
 // Create and export Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  debug: true,
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true
+  }
+});
+
+// Enhanced debugging insert helper function
+export const debugInsertProfile = async (profile: Profile): Promise<{success: boolean, error?: any, data?: any}> => {
+  try {
+    console.log('Attempting to insert profile:', profile);
+    
+    // Ensure all required fields are present
+    if (!profile.id) {
+      console.error('Profile ID is required');
+      return { success: false, error: 'Profile ID is required' };
+    }
+    
+    if (!profile.name) {
+      console.error('Profile name is required');
+      return { success: false, error: 'Profile name is required' };
+    }
+    
+    if (!profile.email) {
+      console.error('Profile email is required');
+      return { success: false, error: 'Profile email is required' };
+    }
+    
+    // Insert with explicit column names to avoid potential SQL issues
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert([{
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        tests_completed: profile.tests_completed || 0,
+        courses_completed: profile.courses_completed || 0,
+        avatar_url: profile.avatar_url || null
+      }])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Insert profile error:', error);
+      return { success: false, error };
+    }
+    
+    console.log('Profile inserted successfully:', data);
+    return { success: true, data };
+  } catch (err) {
+    console.error('Unexpected error during profile insert:', err);
+    return { success: false, error: err };
+  }
+};
 
 // Type definitions for database entities
 export type Profile = {

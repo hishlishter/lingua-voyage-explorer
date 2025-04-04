@@ -11,8 +11,8 @@ import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
-import { useQuery } from '@tanstack/react-query';
+import { supabase, Profile } from '@/lib/supabase';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, "Введите текущий пароль"),
@@ -34,6 +34,7 @@ const Settings = () => {
   const { user } = useAuth();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const queryClient = useQueryClient();
 
   // Получение данных профиля из Supabase
   const { data: profile, isLoading, refetch } = useQuery({
@@ -49,12 +50,34 @@ const Settings = () => {
       
       if (error) {
         console.error('Ошибка получения профиля:', error);
+        
+        // If profile doesn't exist, attempt to create it
+        if (error.code === 'PGRST116') {
+          console.log('Профиль не найден, создаем новый профиль');
+          const newProfile: Profile = {
+            id: user.id,
+            name: user.user_metadata?.name || 'Пользователь',
+            email: user.email || '',
+            tests_completed: 0,
+            courses_completed: 0
+          };
+          
+          // Save to localStorage as fallback
+          localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
+          
+          return newProfile;
+        }
+        
         return null;
       }
       
+      // Cache the profile data
+      localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
       return data;
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 300000,
+    refetchOnWindowFocus: false
   });
 
   const passwordForm = useForm<PasswordFormValues>({
@@ -98,23 +121,63 @@ const Settings = () => {
     setIsUpdatingProfile(true);
     
     try {
-      const { error } = await supabase
+      // Check if profile exists first
+      const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
-        .update({ name: values.name })
-        .eq('id', user.id);
-      
-      if (error) {
-        toast.error('Ошибка обновления профиля', {
-          description: error.message
-        });
-        return;
+        .select('id')
+        .eq('id', user.id)
+        .single();
+        
+      if (checkError && checkError.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        const newProfile: Profile = {
+          id: user.id,
+          name: values.name,
+          email: user.email || '',
+          tests_completed: 0,
+          courses_completed: 0
+        };
+        
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([newProfile]);
+          
+        if (insertError) {
+          throw insertError;
+        }
+        
+        // Update local storage
+        localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
+        
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+        
+        toast.success("Профиль успешно создан");
+      } else {
+        // Profile exists, update it
+        const { error } = await supabase
+          .from('profiles')
+          .update({ name: values.name })
+          .eq('id', user.id);
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Update local storage with latest profile data
+        const updatedProfile = {...profile, name: values.name} as Profile;
+        localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
+        
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+        
+        toast.success("Профиль успешно обновлен");
       }
-      
-      await refetch(); // Обновляем данные
-      toast.success("Профиль успешно обновлен");
-    } catch (err) {
+    } catch (err: any) {
       console.error('Ошибка обновления профиля:', err);
-      toast.error("Произошла ошибка при обновлении профиля");
+      toast.error("Произошла ошибка при обновлении профиля", {
+        description: err.message || "Неизвестная ошибка"
+      });
     } finally {
       setIsUpdatingProfile(false);
     }

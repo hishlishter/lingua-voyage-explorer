@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -48,13 +49,14 @@ const UserProfile = () => {
     }
   }, [user?.id]);
   
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
       if (!user) return null;
       
       try {
-        console.log('UserProfile: Fetching profile data');
+        console.log('UserProfile: Fetching profile data for user:', user.id);
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -63,6 +65,32 @@ const UserProfile = () => {
         
         if (error) {
           console.error('UserProfile: Error fetching profile:', error);
+          
+          // If profile doesn't exist, try to create one
+          if (error.code === 'PGRST116') {
+            console.log('UserProfile: Profile not found, attempting to create');
+            const newProfile: Profile = {
+              id: user.id,
+              name: user.user_metadata?.name || 'Пользователь',
+              email: user.email || '',
+              tests_completed: 0,
+              courses_completed: 0
+            };
+            
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([newProfile]);
+              
+            if (insertError) {
+              console.error('UserProfile: Error creating profile:', insertError);
+              return localProfile || fallbackProfile;
+            }
+            
+            console.log('UserProfile: Profile created successfully');
+            localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
+            return newProfile;
+          }
+          
           return localProfile || fallbackProfile;
         }
         
