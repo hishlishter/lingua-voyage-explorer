@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -10,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Profile } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const UserProfile = () => {
   const { user } = useAuth();
@@ -18,6 +18,14 @@ const UserProfile = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
+
+  const fallbackProfile = user ? {
+    id: user.id,
+    name: user.user_metadata?.name || 'Пользователь',
+    email: user.email || '',
+    tests_completed: 0,
+    courses_completed: 0
+  } as Profile : null;
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', user?.id],
@@ -37,7 +45,10 @@ const UserProfile = () => {
       
       return data;
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 60000,
+    placeholderData: fallbackProfile,
+    refetchOnWindowFocus: false
   });
 
   const updateAvatarMutation = useMutation({
@@ -75,10 +86,8 @@ const UserProfile = () => {
     
     try {
       setIsUploading(true);
-      // First upload the file to Supabase storage
       const fileName = `avatar-${user.id}-${Date.now()}`;
       
-      // Create a proper file name with extension
       const fileExt = avatarFile.name.split('.').pop();
       const fileNameWithExt = `${fileName}.${fileExt}`;
       
@@ -94,14 +103,12 @@ const UserProfile = () => {
         throw uploadError;
       }
       
-      // Get the public URL
       const { data: publicUrlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileNameWithExt);
       
       const avatarUrl = publicUrlData.publicUrl;
       
-      // Update the profile with the avatar URL
       await updateAvatarMutation.mutateAsync(avatarUrl);
       
       setDialogOpen(false);
@@ -121,15 +128,9 @@ const UserProfile = () => {
       .toUpperCase();
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
-        <div>Загрузка профиля...</div>
-      </div>
-    );
-  }
+  const profileData = profile || fallbackProfile;
 
-  if (!profile || !user) {
+  if (!user) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
         <div>Профиль не найден</div>
@@ -143,8 +144,8 @@ const UserProfile = () => {
         <DialogTrigger asChild>
           <div className="relative cursor-pointer group">
             <Avatar className="w-24 h-24 border-4 border-white shadow-md">
-              <AvatarImage src={profile.avatar_url || '/placeholder.svg'} />
-              <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+              <AvatarImage src={profileData.avatar_url || '/placeholder.svg'} />
+              <AvatarFallback>{getInitials(profileData.name)}</AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
               <Camera className="text-white" size={24} />
@@ -158,8 +159,8 @@ const UserProfile = () => {
           <div className="space-y-4">
             <div className="flex justify-center">
               <Avatar className="w-24 h-24">
-                <AvatarImage src={tempAvatarURL || profile.avatar_url || '/placeholder.svg'} />
-                <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+                <AvatarImage src={tempAvatarURL || profileData.avatar_url || '/placeholder.svg'} />
+                <AvatarFallback>{getInitials(profileData.name)}</AvatarFallback>
               </Avatar>
             </div>
             <div className="space-y-2">
@@ -179,17 +180,41 @@ const UserProfile = () => {
         </DialogContent>
       </Dialog>
       
-      <h3 className="mt-4 text-xl font-semibold">{profile.name}</h3>
-      <p className="text-muted-foreground text-sm">{profile.email}</p>
+      <h3 className="mt-4 text-xl font-semibold">
+        {isLoading ? (
+          <Skeleton className="h-7 w-32" />
+        ) : (
+          profileData.name
+        )}
+      </h3>
+      <p className="text-muted-foreground text-sm">
+        {isLoading ? (
+          <Skeleton className="h-4 w-48" />
+        ) : (
+          profileData.email
+        )}
+      </p>
       
       <div className="w-full mt-6 grid grid-cols-2 gap-4 text-center">
         <div className="py-3 px-2">
           <p className="text-muted-foreground text-sm">Пройдено тестов</p>
-          <p className="text-3xl font-bold">{profile.tests_completed || 0}</p>
+          <p className="text-3xl font-bold">
+            {isLoading ? (
+              <Skeleton className="h-10 w-10 mx-auto" />
+            ) : (
+              profileData.tests_completed || 0
+            )}
+          </p>
         </div>
         <div className="py-3 px-2 border-l border-gray-200">
           <p className="text-muted-foreground text-sm">Пройдено курсов</p>
-          <p className="text-3xl font-bold">{profile.courses_completed || 0}</p>
+          <p className="text-3xl font-bold">
+            {isLoading ? (
+              <Skeleton className="h-10 w-10 mx-auto" />
+            ) : (
+              profileData.courses_completed || 0
+            )}
+          </p>
         </div>
       </div>
     </div>
