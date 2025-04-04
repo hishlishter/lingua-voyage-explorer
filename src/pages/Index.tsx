@@ -18,25 +18,35 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
+      // If no user is logged in, return null immediately
       if (!user?.id) return null;
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      console.log("Fetching profile for user:", user.id);
       
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching profile:', error);
+          throw error;
+        }
+        
+        console.log("Profile data retrieved:", data);
+        return data;
+      } catch (error) {
+        console.error('Error in query function:', error);
+        throw error;
       }
-      
-      return data;
     },
     enabled: !!user?.id,
+    retry: 1, // Limit retries to prevent infinite loops
   });
 
   const handleSearch = async (query: string) => {
@@ -125,6 +135,9 @@ const Index = () => {
     }
   };
 
+  // This will provide more information about auth state and loading
+  console.log("Auth state:", { user, isLoadingProfile: isLoading, isError });
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -163,8 +176,30 @@ const Index = () => {
               </div>
             ) : (
               <>
-                {isLoading ? (
-                  <div className="text-center py-12">Загрузка...</div>
+                {/* Add a fallback UI for when user is not yet loaded */}
+                {!user ? (
+                  <div className="text-center py-12">
+                    <h2 className="text-2xl font-semibold">Добро пожаловать в Языковой тренажер</h2>
+                    <p className="text-muted-foreground mt-2">Пожалуйста, войдите в систему для доступа к вашему профилю</p>
+                  </div>
+                ) : isLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-pulse flex flex-col items-center">
+                      <div className="h-12 w-12 bg-primary/20 rounded-full mb-4"></div>
+                      <div className="h-4 w-24 bg-primary/20 rounded mb-2"></div>
+                      <div className="h-2 w-16 bg-primary/20 rounded"></div>
+                    </div>
+                  </div>
+                ) : isError ? (
+                  <div className="text-center py-12">
+                    <p className="text-destructive mb-2">Ошибка при загрузке профиля</p>
+                    <button 
+                      className="text-primary hover:underline"
+                      onClick={() => window.location.reload()}
+                    >
+                      Попробовать снова
+                    </button>
+                  </div>
                 ) : profile ? (
                   <>
                     <UserProfile />
@@ -180,7 +215,9 @@ const Index = () => {
                     <WordSets title="Словарные наборы" />
                   </>
                 ) : (
-                  <div className="text-center py-12">Профиль не найден</div>
+                  <div className="text-center py-12">
+                    <p>Профиль не найден. Пожалуйста, создайте новый профиль.</p>
+                  </div>
                 )}
               </>
             )}

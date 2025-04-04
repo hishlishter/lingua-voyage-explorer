@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Default development values (these will be used if no env variables are set)
@@ -66,6 +67,7 @@ export const checkAuth = async () => {
       console.error('Supabase authentication error:', error.message);
       return false;
     }
+    console.log('Auth session check:', data.session ? 'User is authenticated' : 'No active session');
     return !!data.session;
   } catch (err) {
     console.error('Failed to check authentication:', err);
