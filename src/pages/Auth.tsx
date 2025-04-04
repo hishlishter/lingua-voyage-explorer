@@ -88,6 +88,8 @@ const Auth = () => {
     setIsTestLoading(true);
     try {
       await signInWithTestAccount();
+    } catch (error) {
+      console.error("Test account login failed:", error);
     } finally {
       setIsTestLoading(false);
     }
