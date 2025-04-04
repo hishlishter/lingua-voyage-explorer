@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // Use environment variables if available, otherwise fall back to hardcoded values
 // These are public keys so it's safe to include them in the client-side code
 const supabaseUrl = 'https://ejyyiilgghontvdrwuns.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTI1MTI5ODEsImV4cCI6MjAyODA4ODk4MX0.7ezbfOe1d_jF66gCMLLQo6bT-3Dun5t_Z36fUMnzcCI';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3OTYwNzEsImV4cCI6MjA1OTM3MjA3MX0.ZMx420McFLRUBtg88_ll13_h3u7QmT7WmRaLU4VNZuc';
 
 // Initialize the Supabase client with the correct configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

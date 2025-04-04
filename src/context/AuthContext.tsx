@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -136,7 +135,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Attempting to sign in with test account...");
       
-      // Try to sign in first - if the account already exists
+      // Clear any existing session first to avoid conflicts
+      await supabase.auth.signOut();
+      
+      // Try to sign in first
       const { error, data } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword
@@ -144,9 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.log("Test account login failed, creating new account:", error.message);
-        
-        // Clear any existing session first to avoid conflicts
-        await supabase.auth.signOut();
         
         // If login fails, create the test account
         const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
@@ -185,6 +184,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
             return;
           }
+          
+          // Wait a moment to ensure the account is fully created before logging in
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           // Try to log in again after creating the account
           const { error: loginError } = await supabase.auth.signInWithPassword({
