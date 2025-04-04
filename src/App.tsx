@@ -16,11 +16,14 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import TestDetail from "./pages/TestDetail";
 import { Skeleton } from "./components/ui/skeleton";
 
+// Create a query client with optimized settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      staleTime: 60000, // 1 minute cache
+      cacheTime: 300000, // 5 minutes
     },
   },
 });
@@ -40,38 +43,28 @@ const LoadingScreen = () => (
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  console.log("ProtectedRoute - loading:", loading, "user:", user?.id);
-  
   if (loading) {
     return <LoadingScreen />;
   }
   
   if (!user) {
-    console.log("No user, redirecting to /auth");
     return <Navigate to="/auth" replace />;
   }
   
   return <>{children}</>;
 };
 
+// Separate the routes into their own component
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   
-  console.log("AppRoutes - loading:", loading, "user:", user?.id);
-  
-  // Add a maximum waiting time for loading - if it takes too long, assume there's an issue
+  // Add a maximum waiting time for loading
   React.useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null;
+    const timeout = setTimeout(() => {
+      console.log("Loading timeout reached - possible auth issue");
+    }, 5000);  // 5 seconds timeout
     
-    if (loading) {
-      timeout = setTimeout(() => {
-        console.log("Loading timeout reached - possible auth issue");
-      }, 5000);  // 5 seconds timeout
-    }
-    
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
+    return () => clearTimeout(timeout);
   }, [loading]);
   
   if (loading) {

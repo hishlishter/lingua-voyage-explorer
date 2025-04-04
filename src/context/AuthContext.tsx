@@ -4,6 +4,7 @@ import { supabase, checkAuth, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useProfile } from '@/hooks/useProfile';
 
 type AuthContextType = {
   session: Session | null;
@@ -24,16 +25,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
   const [supabaseInitialized, setSupabaseInitialized] = useState(false);
   const navigate = useNavigate();
-
-  // Console log for debugging
-  console.log('AuthProvider rendering, loading:', loading, 'user:', user?.id, 'profile:', profile?.id);
+  const { fetchUserProfile, ensureUserProfile } = useProfile();
 
   useEffect(() => {
     console.log('AuthProvider effect running');
     let isMounted = true;
+    let loadingTimeout: NodeJS.Timeout | null = null;
+    
+    // Set maximum loading time to prevent infinite loading
+    loadingTimeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.error('Auth loading timeout reached, forcing completion');
+        setLoading(false);
+      }
+    }, 10000); // 10 seconds max loading time
     
     const initializeSupabase = async () => {
       try {
@@ -67,9 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('User logged in, fetching profile...');
           if (isMounted) {
             const profileData = await fetchUserProfile(data.session.user.id);
-            if (!profileData && isMounted) {
+            if (profileData) {
+              setProfile(profileData);
+            } else if (isMounted) {
               console.log('No profile found, creating one...');
-              await ensureUserProfile(data.session.user);
+              await ensureUserProfile(data.session.user, setProfile);
             }
           }
         } else {
@@ -107,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           console.log('Ensuring profile exists for user:', session.user.id);
           if (isMounted) {
-            await ensureUserProfile(session.user);
+            await ensureUserProfile(session.user, setProfile);
           }
         } else if (isMounted) {
           setProfile(null);
@@ -120,72 +129,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Cleanup function
     return () => {
       isMounted = false;
+      if (loadingTimeout) clearTimeout(loadingTimeout);
       data.subscription.unsubscribe();
     };
   }, []);
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      if (profileLoading) return null;
-      
-      setProfileLoading(true);
-      console.log('Fetching profile for user:', userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      setProfileLoading(false);
-      
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-      
-      console.log('Profile fetched successfully:', data);
-      setProfile(data);
-      return data;
-    } catch (error) {
-      setProfileLoading(false);
-      console.error('Unexpected error fetching profile:', error);
-      return null;
-    }
-  };
-
-  const ensureUserProfile = async (user: User) => {
-    try {
-      console.log('Ensuring profile exists for user:', user.id);
-      const profile = await fetchUserProfile(user.id);
-      
-      if (!profile) {
-        console.log('Profile not found, creating new profile for:', user.id);
-        const { error: createError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: user.id, 
-              name: user.email?.split('@')[0] || 'User', 
-              email: user.email || '',
-              tests_completed: 0,
-              courses_completed: 0
-            }
-          ]);
-
-        if (createError) {
-          console.error('Profile creation error:', createError);
-          toast.error('Ошибка создания профиля', {
-            description: createError.message
-          });
-        } else {
-          console.log('Profile created successfully for user:', user.id);
-          await fetchUserProfile(user.id);
-        }
-      }
-    } catch (error) {
-      console.error('Unexpected error in ensureUserProfile:', error);
-    }
-  };
 
   const signIn = async (email: string, password: string) => {
     if (!supabaseInitialized) {
@@ -211,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Sign in successful for user:', data.user?.id);
       
       if (data.user) {
-        await ensureUserProfile(data.user);
+        await ensureUserProfile(data.user, setProfile);
       }
       
       toast.success('Signed in successfully');
@@ -256,34 +203,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('User registered successfully:', data.user.id);
-      
-      try {
-        const { error: createError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: data.user.id, 
-              name: email.split('@')[0], // Set a default name based on email
-              email: email,
-              tests_completed: 0,
-              courses_completed: 0
-            }
-          ])
-          .select();
-
-        if (createError) {
-          console.error('Profile creation error:', createError);
-          
-          toast.warning('Profile creation issue', {
-            description: 'Your account was created but there was an issue setting up your profile. You can still sign in.'
-          });
-        } else {
-          console.log('Profile created successfully for user:', data.user.id);
-        }
-      } catch (profileError) {
-        console.error('Unexpected profile creation error:', profileError);
-      }
-      
       toast.success('Registration successful', {
         description: 'You can now sign in'
       });

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Bell, Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -13,14 +13,14 @@ interface HeaderProps {
   title?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onSearch, title }) => {
-  const { user, profile, signOut } = useAuth();
+// Use memo to prevent unnecessary re-renders
+const Header: React.FC<HeaderProps> = memo(({ onSearch, title }) => {
+  const { user, profile } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   
-  console.log("Header rendering - user:", user?.id, "profile:", profile?.name);
-  
   const handleSignOut = async () => {
+    const { signOut } = useAuth();
     await signOut();
     navigate('/auth');
   };
@@ -111,6 +111,6 @@ const Header: React.FC<HeaderProps> = ({ onSearch, title }) => {
       </div>
     </header>
   );
-};
+});
 
 export default Header;
