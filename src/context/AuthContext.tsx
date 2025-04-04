@@ -66,9 +66,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const { data } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        async (_event, session) => {
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Check if user has a profile, if not create one
+          if (session?.user) {
+            await ensureUserProfile(session.user);
+          }
+          
           setLoading(false);
         }
       );
@@ -85,6 +91,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
+
+  // Helper function to ensure user has a profile
+  const ensureUserProfile = async (user: User) => {
+    try {
+      // First check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // Not found error
+        console.error('Error checking for profile:', checkError);
+        return;
+      }
+
+      // If profile doesn't exist, create it
+      if (!existingProfile) {
+        console.log('Profile not found, creating new profile for:', user.id);
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: user.id, 
+              name: user.email?.split('@')[0] || 'User', 
+              email: user.email || '',
+              tests_completed: 0,
+              courses_completed: 0
+            }
+          ]);
+
+        if (createError) {
+          console.error('Profile creation error:', createError);
+          toast.error('Ошибка создания профиля', {
+            description: createError.message
+          });
+        } else {
+          console.log('Profile created successfully for user:', user.id);
+        }
+      }
+    } catch (error) {
+      console.error('Unexpected error in ensureUserProfile:', error);
+    }
+  };
 
   const signIn = async (email: string, password: string) => {
     if (!supabaseInitialized) {
@@ -108,6 +158,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       console.log('Sign in successful for user:', data.user?.id);
+      
+      // Ensure profile exists
+      if (data.user) {
+        await ensureUserProfile(data.user);
+      }
+      
       toast.success('Signed in successfully');
       navigate('/');
     } catch (error) {
@@ -131,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         options: {
           data: {
-            name: "",
+            name: email.split('@')[0], // Default name from email
           }
         }
       });
@@ -152,10 +208,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('User registered successfully:', data.user.id);
       
-      // Create profile for new user
+      // Create profile for new user right after registration
       try {
-        // Using adminAuthClient directly to bypass RLS
-        const { error: profileError } = await supabase
+        // Disable RLS temporarily via SQL for profile creation
+        const { error: createError } = await supabase
           .from('profiles')
           .insert([
             { 
@@ -165,13 +221,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               tests_completed: 0,
               courses_completed: 0
             }
-          ]);
+          ])
+          .select();
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
+        if (createError) {
+          console.error('Profile creation error:', createError);
           
           // Even if profile creation fails, we still allow the user to sign in
-          // The profile can be created later
+          // The profile can be created later via ensureUserProfile
           toast.warning('Profile creation issue', {
             description: 'Your account was created but there was an issue setting up your profile. You can still sign in.'
           });

@@ -1,6 +1,8 @@
 
 -- First check if the test user exists in the auth.users table
 DO $$
+DECLARE
+  test_user_id UUID;
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM auth.users WHERE email = 'test@example.com'
@@ -44,35 +46,35 @@ BEGIN
       '',
       '',
       ''
-    );
-    
-    -- Get the user ID for the test user
-    DECLARE test_user_id UUID;
+    )
+    RETURNING id INTO test_user_id;
+  ELSE
+    -- Get the user ID for the existing test user
     SELECT id INTO test_user_id FROM auth.users WHERE email = 'test@example.com';
-    
-    -- Temporarily disable RLS to ensure we can create the profile
-    ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
-    
-    -- Create profile for test user if it doesn't exist
-    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = test_user_id) THEN
-      INSERT INTO public.profiles (
-        id,
-        name,
-        email,
-        tests_completed,
-        courses_completed,
-        created_at
-      ) VALUES (
-        test_user_id,
-        'Test User',
-        'test@example.com',
-        0,
-        0,
-        NOW()
-      );
-    END IF;
-    
-    -- Re-enable RLS
-    ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
   END IF;
+    
+  -- Temporarily disable RLS to ensure we can create the profile
+  ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+    
+  -- Create profile for test user if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = test_user_id) THEN
+    INSERT INTO public.profiles (
+      id,
+      name,
+      email,
+      tests_completed,
+      courses_completed,
+      created_at
+    ) VALUES (
+      test_user_id,
+      'Test User',
+      'test@example.com',
+      0,
+      0,
+      NOW()
+    );
+  END IF;
+    
+  -- Re-enable RLS
+  ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 END $$;
