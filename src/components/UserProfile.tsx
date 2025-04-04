@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Profile } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -16,8 +16,10 @@ const UserProfile = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempAvatarURL, setTempAvatarURL] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const { data: profile, isLoading, refetch } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
       if (!user) return null;
@@ -51,7 +53,7 @@ const UserProfile = () => {
     },
     onSuccess: () => {
       toast.success('Аватар успешно обновлен');
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
     onError: (error) => {
       toast.error('Ошибка при обновлении аватара');
@@ -72,18 +74,30 @@ const UserProfile = () => {
     if (!avatarFile || !user) return;
     
     try {
+      setIsUploading(true);
       // First upload the file to Supabase storage
       const fileName = `avatar-${user.id}-${Date.now()}`;
+      
+      // Create a proper file name with extension
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileNameWithExt = `${fileName}.${fileExt}`;
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, avatarFile);
+        .upload(fileNameWithExt, avatarFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
       
       // Get the public URL
       const { data: publicUrlData } = supabase.storage
         .from('avatars')
-        .getPublicUrl(fileName);
+        .getPublicUrl(fileNameWithExt);
       
       const avatarUrl = publicUrlData.publicUrl;
       
@@ -94,6 +108,8 @@ const UserProfile = () => {
     } catch (error) {
       toast.error('Ошибка при загрузке изображения');
       console.error('Avatar upload error:', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -152,7 +168,12 @@ const UserProfile = () => {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Отмена</Button>
-              <Button onClick={saveAvatar}>Сохранить</Button>
+              <Button 
+                onClick={saveAvatar} 
+                disabled={!avatarFile || isUploading}
+              >
+                {isUploading ? 'Загрузка...' : 'Сохранить'}
+              </Button>
             </div>
           </div>
         </DialogContent>

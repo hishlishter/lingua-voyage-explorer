@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Question, Test, Option } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -17,6 +17,7 @@ const TestDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: string}>({});
   const [showResults, setShowResults] = useState(false);
@@ -82,6 +83,9 @@ const TestDetail = () => {
     },
     onSuccess: () => {
       toast.success('Результаты сохранены');
+      // Инвалидируем кэши запросов для обновления данных
+      queryClient.invalidateQueries({ queryKey: ['test-results'] });
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
     onError: (error) => {
       console.error('Ошибка сохранения результатов:', error);

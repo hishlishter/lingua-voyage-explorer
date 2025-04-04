@@ -36,7 +36,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
   const [year, setYear] = useState(initialYear);
   const { user } = useAuth();
   
-  // Получаем данные о результатах тестов пользователя
+  // Получаем данные о результатах тестов пользователя с обновленными queryKey
   const { data: testResults, isLoading } = useQuery({
     queryKey: ['test-results', user?.id, year],
     queryFn: async () => {
@@ -60,7 +60,11 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
       
       return data || [];
     },
-    enabled: !!user
+    enabled: !!user,
+    // Add refetchOnWindowFocus to refresh data when the tab regains focus
+    refetchOnWindowFocus: true,
+    // Add staleTime to make sure data is refreshed more frequently
+    staleTime: 30000 // 30 seconds
   });
   
   // Подготавливаем данные для графика
