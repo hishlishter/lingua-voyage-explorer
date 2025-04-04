@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -24,14 +23,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get current session on load
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -62,7 +59,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Create user in Auth
       const { error, data } = await supabase.auth.signUp({ 
         email, 
         password
@@ -75,14 +71,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Create profile record with empty name
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
             { 
               id: data.user.id, 
-              name: "",  // Empty name to be filled later in settings
+              name: "", 
               email: email,
               tests_completed: 0,
               courses_completed: 0
@@ -95,7 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: profileError.message
           });
           
-          // If profile creation fails, try to delete the auth user
           try {
             await supabase.auth.admin.deleteUser(data.user.id);
           } catch (deleteError) {
@@ -127,19 +121,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Function to sign in with a test account
   const signInWithTestAccount = async () => {
     try {
-      // Test account credentials - using a valid email format
-      const testEmail = "test.user@example.org";
+      const testEmail = "test@example.com";
       const testPassword = "testpassword123";
       
       console.log("Attempting to sign in with test account...");
       
-      // Clear any existing session first to avoid conflicts
       await supabase.auth.signOut();
       
-      // Try to sign in first
       const { error, data } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword
@@ -148,13 +138,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.log("Test account login failed, creating new account:", error.message);
         
-        // If login fails, create the test account
         const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
           email: testEmail,
-          password: testPassword,
-          options: {
-            emailRedirectTo: window.location.origin
-          }
+          password: testPassword
         });
         
         if (signUpError) {
@@ -165,7 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        // Create profile for test user
         if (signUpData?.user) {
           console.log("Creating test profile for user:", signUpData.user.id);
           
@@ -189,10 +174,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
           
-          // Wait a moment to ensure the account is fully created before logging in
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
-          // Try to log in again after creating the account
           const { error: loginError } = await supabase.auth.signInWithPassword({
             email: testEmail,
             password: testPassword

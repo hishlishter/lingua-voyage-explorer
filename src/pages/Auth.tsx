@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -28,7 +27,6 @@ const loginSchema = z.object({
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
 });
 
-// Simplified email regex pattern to be more permissive
 const registerSchema = z.object({
   email: z.string().email("Введите корректный email"),
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
@@ -161,7 +159,6 @@ const Auth = () => {
                   {isSubmitting ? "Вход..." : "Войти"}
                 </Button>
                 
-                {/* Test account button */}
                 <div className="mt-4 relative text-center">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-300"></span>
@@ -249,7 +246,6 @@ const Auth = () => {
                   {isSubmitting ? "Регистрация..." : "Зарегистрироваться"}
                 </Button>
                 
-                {/* Test account button - also available on registration page */}
                 <div className="mt-4 relative text-center">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-300"></span>
