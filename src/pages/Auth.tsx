@@ -122,6 +122,14 @@ const Auth = () => {
         </CardHeader>
         
         <CardContent>
+          <div className="mb-4 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-700">
+            <p className="text-sm font-medium">
+              Для быстрого входа используйте кнопку "Войти с тестовым аккаунтом" или следующие данные:
+            </p>
+            <p className="text-sm mt-1">Email: <span className="font-mono">test@example.com</span></p>
+            <p className="text-sm">Пароль: <span className="font-mono">testpassword123</span></p>
+          </div>
+
           {isLogin ? (
             <Form {...loginForm}>
               <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
