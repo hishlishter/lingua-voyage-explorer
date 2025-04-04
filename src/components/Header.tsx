@@ -1,26 +1,16 @@
 
-import React, { useState } from 'react';
-import { Search, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import React from 'react';
+import { Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
   title?: string;
-  onSearch?: (query: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, onSearch }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+const Header: React.FC<HeaderProps> = ({ title }) => {
   const navigate = useNavigate();
   
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (onSearch && searchQuery.trim()) {
-      onSearch(searchQuery);
-    }
-  };
-
   const handleGoBack = () => {
     navigate(-1);
   };
@@ -51,19 +41,6 @@ const Header: React.FC<HeaderProps> = ({ title, onSearch }) => {
           <ChevronRight size={20} />
         </Button>
         {title && <h1 className="text-xl font-semibold ml-2">{title}</h1>}
-      </div>
-
-      <div className="w-96 max-w-full">
-        <form onSubmit={handleSearch} className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Поиск"
-            className="w-full pl-10 pr-4 py-2 rounded-full border-0 bg-gray-100"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </form>
       </div>
 
       <div>
