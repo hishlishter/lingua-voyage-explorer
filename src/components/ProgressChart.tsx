@@ -11,8 +11,6 @@ interface ProgressChartProps {
   data: Array<{
     name: string;
     value1: number;
-    value2: number;
-    value3: number;
   }>;
 }
 
@@ -30,6 +28,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const ProgressChart: React.FC<ProgressChartProps> = ({ title, year, data }) => {
+  // Получаем текущий месяц (0-11)
+  const currentMonth = new Date().getMonth();
+  
+  // Добавляем в данные флаг для текущего месяца
+  const enhancedData = data.map((item, index) => ({
+    ...item,
+    isCurrentMonth: index === currentMonth
+  }));
+
   return (
     <Card className="shadow-sm border-none overflow-hidden">
       <CardHeader className="pb-0">
@@ -47,9 +54,9 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year, data }) => {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="h-64 mt-4 relative">
+        <div className="h-64 mt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <LineChart data={enhancedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <XAxis 
                 dataKey="name" 
                 axisLine={false}
@@ -63,31 +70,31 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year, data }) => {
                 dataKey="value1" 
                 stroke="#B794F4" 
                 strokeWidth={3} 
-                dot={false}
+                dot={(props) => {
+                  // Для точек используем особую логику отображения
+                  const { cx, cy, payload } = props;
+                  
+                  // Если это текущий месяц, показываем особую точку
+                  if (payload.isCurrentMonth) {
+                    return (
+                      <circle 
+                        cx={cx} 
+                        cy={cy} 
+                        r={6} 
+                        fill="#B794F4" 
+                        stroke="#fff" 
+                        strokeWidth={2}
+                      />
+                    );
+                  }
+                  
+                  // Для остальных месяцев точек нет
+                  return null;
+                }}
                 activeDot={{ r: 6, fill: '#B794F4', stroke: '#fff', strokeWidth: 2 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="value2" 
-                stroke="#F687B3" 
-                strokeWidth={3} 
-                dot={false}
-                activeDot={{ r: 6, fill: '#F687B3', stroke: '#fff', strokeWidth: 2 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="value3" 
-                stroke="#4FD1C5" 
-                strokeWidth={3} 
-                dot={false}
-                activeDot={{ r: 6, fill: '#4FD1C5', stroke: '#fff', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
-          <div className="absolute top-0 right-0 p-2 bg-black/70 text-white rounded-lg text-sm">
-            <div className="font-bold">4.5</div>
-            <div className="text-xs">Балла</div>
-          </div>
         </div>
       </CardContent>
     </Card>
