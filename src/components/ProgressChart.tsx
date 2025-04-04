@@ -37,6 +37,9 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year, data }) => {
     isCurrentMonth: index === currentMonth
   }));
 
+  // Получаем значение текущего месяца для отображения над точкой
+  const currentMonthValue = enhancedData[currentMonth]?.value1 ?? 0;
+
   return (
     <Card className="shadow-sm border-none overflow-hidden">
       <CardHeader className="pb-0">
@@ -74,17 +77,29 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year, data }) => {
                   // Для точек используем особую логику отображения
                   const { cx, cy, payload } = props;
                   
-                  // Если это текущий месяц, показываем особую точку
+                  // Если это текущий месяц, показываем особую точку и балл над ней
                   if (payload.isCurrentMonth) {
                     return (
-                      <circle 
-                        cx={cx} 
-                        cy={cy} 
-                        r={6} 
-                        fill="#B794F4" 
-                        stroke="#fff" 
-                        strokeWidth={2}
-                      />
+                      <g>
+                        <circle 
+                          cx={cx} 
+                          cy={cy} 
+                          r={6} 
+                          fill="#B794F4" 
+                          stroke="#fff" 
+                          strokeWidth={2}
+                        />
+                        <text 
+                          x={cx} 
+                          y={cy - 15} 
+                          textAnchor="middle" 
+                          fill="#333" 
+                          fontSize="12" 
+                          fontWeight="bold"
+                        >
+                          {payload.value1.toFixed(1)}
+                        </text>
+                      </g>
                     );
                   }
                   
