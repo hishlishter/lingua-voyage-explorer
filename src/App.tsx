@@ -16,13 +16,13 @@ import TestDetail from "./pages/TestDetail";
 
 const queryClient = new QueryClient();
 
-// Modified Protected Route that allows unauthenticated users
+// Модифицированный защищенный маршрут, который позволяет неаутентифицированным пользователям
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   
   if (loading) return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
   
-  // No redirect, just render the children
+  // Без редиректа, просто рендерим дочерние компоненты
   return <>{children}</>;
 };
 

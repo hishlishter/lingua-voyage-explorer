@@ -23,6 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { LockKeyhole, Mail } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email("Введите корректный email"),
@@ -70,6 +71,7 @@ const Auth = () => {
   const onLoginSubmit = async (values: LoginFormValues) => {
     setIsSubmitting(true);
     try {
+      console.log("Попытка входа с данными:", values.email);
       await signIn(values.email, values.password);
     } finally {
       setIsSubmitting(false);
@@ -79,6 +81,7 @@ const Auth = () => {
   const onRegisterSubmit = async (values: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
+      console.log("Попытка регистрации с данными:", values.email);
       await signUp(values.email, values.password);
     } finally {
       setIsSubmitting(false);
@@ -89,8 +92,6 @@ const Auth = () => {
     setIsTestLoading(true);
     try {
       await signInWithTestAccount();
-    } catch (error) {
-      console.error("Test account login failed:", error);
     } finally {
       setIsTestLoading(false);
     }
@@ -127,7 +128,7 @@ const Auth = () => {
               Для быстрого входа используйте кнопку "Войти с тестовым аккаунтом" или следующие данные:
             </p>
             <p className="text-sm mt-1">Email: <span className="font-mono">test@example.com</span></p>
-            <p className="text-sm">Пароль: <span className="font-mono">testpassword123</span></p>
+            <p className="text-sm">Пароль: <span className="font-mono">password123</span></p>
           </div>
 
           {isLogin ? (
@@ -140,11 +141,15 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="you@example.com" 
-                          {...field} 
-                          autoComplete="email"
-                        />
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+                          <Input 
+                            placeholder="you@example.com" 
+                            {...field} 
+                            autoComplete="email"
+                            className="pl-10"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -158,12 +163,16 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Пароль</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="******" 
-                          {...field} 
-                          autoComplete="current-password"
-                        />
+                        <div className="relative">
+                          <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+                          <Input 
+                            type="password" 
+                            placeholder="******" 
+                            {...field} 
+                            autoComplete="current-password"
+                            className="pl-10"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -213,11 +222,15 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="you@example.com" 
-                          autoComplete="email" 
-                          {...field} 
-                        />
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+                          <Input 
+                            placeholder="you@example.com" 
+                            autoComplete="email" 
+                            {...field} 
+                            className="pl-10"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -231,12 +244,16 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Пароль</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="******" 
-                          autoComplete="new-password" 
-                          {...field}
-                        />
+                        <div className="relative">
+                          <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+                          <Input 
+                            type="password" 
+                            placeholder="******" 
+                            autoComplete="new-password" 
+                            {...field}
+                            className="pl-10"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -250,12 +267,16 @@ const Auth = () => {
                     <FormItem>
                       <FormLabel>Подтвердите пароль</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="******" 
-                          autoComplete="new-password" 
-                          {...field}
-                        />
+                        <div className="relative">
+                          <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+                          <Input 
+                            type="password" 
+                            placeholder="******" 
+                            autoComplete="new-password" 
+                            {...field}
+                            className="pl-10"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -1,27 +1,23 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Book, BookOpen, Brain, Settings, LogOut, Home, LogIn } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const { toast } = useToast();
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Mock login state, would be managed by auth system
+  const { user, signOut } = useAuth();
 
   const isActive = (path: string) => {
     return currentPath === path;
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    toast({
-      title: "Выход выполнен",
-      description: "Вы успешно вышли из системы",
-    });
-    navigate('/auth');
+  const handleLogout = async () => {
+    await signOut();
+    toast.success('Выход выполнен успешно');
   };
 
   const handleLogin = () => {
@@ -115,9 +111,9 @@ const Sidebar = () => {
           <li>
             <button
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/20 transition-colors"
-              onClick={isLoggedIn ? handleLogout : handleLogin}
+              onClick={user ? handleLogout : handleLogin}
             >
-              {isLoggedIn ? (
+              {user ? (
                 <>
                   <LogOut size={20} />
                   <span>Выйти</span>
