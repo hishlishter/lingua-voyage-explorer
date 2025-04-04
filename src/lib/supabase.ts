@@ -6,11 +6,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = 'https://ejyyiilgghontvdrwuns.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTI1MTI5ODEsImV4cCI6MjAyODA4ODk4MX0.7ezbfOe1d_jF66gCMLLQo6bT-3Dun5t_Z36fUMnzcCI';
 
+// Initialize the Supabase client with the correct configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-  }
+    storageKey: 'margo-app-auth',
+  },
 });
 
 // Types for user data

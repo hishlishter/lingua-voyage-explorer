@@ -136,7 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Attempting to sign in with test account...");
       
-      // Try to sign in first
+      // Try to sign in first - if the account already exists
       const { error, data } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword
@@ -144,6 +144,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.log("Test account login failed, creating new account:", error.message);
+        
+        // Clear any existing session first to avoid conflicts
+        await supabase.auth.signOut();
         
         // If login fails, create the test account
         const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
