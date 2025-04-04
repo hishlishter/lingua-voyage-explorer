@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from "@/lib/utils";
@@ -83,7 +83,5 @@ const WordSets: React.FC<WordSetsProps> = ({ title }) => {
     </div>
   );
 };
-
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default WordSets;

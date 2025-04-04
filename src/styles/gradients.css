@@ -1,0 +1,21 @@
+
+/* Card gradients */
+.card-gradient-pink {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+}
+
+.card-gradient-purple {
+  background: linear-gradient(135deg, #845EC2 0%, #B39CD0 100%);
+}
+
+.card-gradient-blue {
+  background: linear-gradient(135deg, #5F9DF7 0%, #8AB4F8 100%);
+}
+
+.card-gradient-green {
+  background: linear-gradient(135deg, #2ECC71 0%, #66D49F 100%);
+}
+
+.card-gradient-orange {
+  background: linear-gradient(135deg, #FF9671 0%, #FFA58F 100%);
+}
