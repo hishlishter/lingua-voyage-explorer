@@ -53,7 +53,8 @@ const Index = () => {
         return data;
       } catch (error) {
         console.error('Error in query function:', error);
-        throw error;
+        // Return fallback profile on error instead of throwing
+        return fallbackProfile;
       }
     },
     enabled: !!user?.id,
@@ -84,7 +85,7 @@ const Index = () => {
               isLoading={false} // Всегда отключаем состояние загрузки
               isError={isError}
               user={user}
-              profile={profile}
+              profile={profile || fallbackProfile}
               onRetry={handleRetry}
             />
             

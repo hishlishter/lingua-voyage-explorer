@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Book, BookOpen, Brain, Settings, LogOut, Home, LogIn, AlertCircle } from 'lucide-react';
@@ -16,8 +15,13 @@ const Sidebar = () => {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    toast.success('Выход выполнен успешно');
+    try {
+      await signOut();
+      // We don't need to show toast here as it's already shown in the signOut function
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Ошибка при выходе из системы');
+    }
   };
 
   const handleLogin = () => {
