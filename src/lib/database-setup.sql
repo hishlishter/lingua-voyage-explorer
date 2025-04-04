@@ -24,7 +24,7 @@ CREATE POLICY "Пользователи могут обновлять свой �
   ON profiles FOR UPDATE 
   USING (auth.uid() = id);
 
--- Разрешаем вставку профилей при регистрации (важно!)
+-- Разрешаем вставку профилей при регистрации
 CREATE POLICY "Разрешаем вставку новых профилей" 
   ON profiles FOR INSERT 
   WITH CHECK (true); -- Разрешаем вставку всем, так как профили создаются при регистрации
@@ -220,3 +220,34 @@ AFTER UPDATE ON course_progress
 FOR EACH ROW
 WHEN (OLD.completed IS DISTINCT FROM NEW.completed)
 EXECUTE FUNCTION update_courses_completed();
+
+-- Create storage bucket for avatars
+INSERT INTO storage.buckets (id, name)
+VALUES ('avatars', 'avatars')
+ON CONFLICT (id) DO NOTHING;
+
+-- Set up security policy for the avatars bucket
+CREATE POLICY "Users can read public avatars"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+
+CREATE POLICY "Authenticated users can upload avatars"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'avatars' AND
+  auth.role() = 'authenticated'
+);
+
+CREATE POLICY "Users can update their own avatars"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'avatars' AND
+  auth.uid() = owner
+);
+
+CREATE POLICY "Users can delete their own avatars"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'avatars' AND
+  auth.uid() = owner
+);

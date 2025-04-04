@@ -25,6 +25,7 @@ export type Profile = {
   id: string;
   name: string;
   email: string;
+  avatar_url?: string;
   tests_completed: number;
   courses_completed: number;
   created_at?: string;
@@ -55,6 +56,30 @@ export type Option = {
   question_id: string;
   text: string;
   is_correct: boolean;
+  created_at?: string;
+};
+
+export type TestResult = {
+  id: string;
+  user_id: string;
+  test_id: string;
+  score: number;
+  total_questions: number;
+  completed_at: string;
+};
+
+export type Word = {
+  id: string;
+  word: string;
+  translation: string;
+  example?: string;
+  created_at?: string;
+};
+
+export type WordSet = {
+  id: string;
+  title: string;
+  description?: string;
   created_at?: string;
 };
 
