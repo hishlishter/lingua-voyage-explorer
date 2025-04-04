@@ -2,10 +2,9 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, Question, Test, Option } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
-import { Question, Test } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -19,7 +18,7 @@ const TestDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
+  const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: number}>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
 
@@ -29,7 +28,7 @@ const TestDetail = () => {
     queryFn: async (): Promise<Test | null> => {
       const { data, error } = await supabase
         .from('tests')
-        .select('*, questions(*)')
+        .select('*, questions(*, options(*))')
         .eq('id', id)
         .single();
       
@@ -88,10 +87,11 @@ const TestDetail = () => {
     }
   });
 
-  const handleSelectAnswer = (answerIndex: number) => {
-    const newAnswers = [...selectedAnswers];
-    newAnswers[currentQuestionIndex] = answerIndex;
-    setSelectedAnswers(newAnswers);
+  const handleSelectAnswer = (optionId: number) => {
+    setSelectedAnswers({
+      ...selectedAnswers,
+      [currentQuestionIndex]: optionId
+    });
   };
 
   const handleNextQuestion = () => {
@@ -102,7 +102,10 @@ const TestDetail = () => {
       let correctAnswers = 0;
       
       test?.questions.forEach((question, index) => {
-        if (selectedAnswers[index] === question.correct_option) {
+        const selectedOptionId = selectedAnswers[index];
+        const correctOption = question.options?.find(option => option.is_correct);
+        
+        if (correctOption && selectedOptionId === correctOption.id) {
           correctAnswers++;
         }
       });
@@ -190,10 +193,10 @@ const TestDetail = () => {
                   onValueChange={(value) => handleSelectAnswer(parseInt(value))}
                   className="space-y-3"
                 >
-                  {currentQuestion.options.map((option, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                      <Label htmlFor={`option-${index}`}>{option}</Label>
+                  {currentQuestion.options?.map((option: Option) => (
+                    <div key={option.id} className="flex items-center space-x-2">
+                      <RadioGroupItem value={option.id.toString()} id={`option-${option.id}`} />
+                      <Label htmlFor={`option-${option.id}`}>{option.text}</Label>
                     </div>
                   ))}
                 </RadioGroup>
