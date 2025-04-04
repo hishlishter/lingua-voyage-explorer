@@ -127,28 +127,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // New function to sign in with a test account
+  // Function to sign in with a test account
   const signInWithTestAccount = async () => {
     try {
       // Test account credentials
       const testEmail = "test@example.com";
       const testPassword = "testpassword123";
       
+      console.log("Attempting to sign in with test account...");
+      
+      // Try to sign in first
       const { error, data } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword
       });
       
       if (error) {
-        console.error('Test account login failed:', error);
+        console.log("Test account login failed, creating new account:", error.message);
         
-        // If login fails, try to create the test account
+        // If login fails, create the test account
         const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
           email: testEmail,
           password: testPassword
         });
         
         if (signUpError) {
+          console.error("Failed to create test account:", signUpError);
           toast.error('Не удалось создать тестовый аккаунт', {
             description: signUpError.message
           });
@@ -156,7 +160,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         // Create profile for test user
-        if (signUpData.user) {
+        if (signUpData?.user) {
+          console.log("Creating test profile for user:", signUpData.user.id);
+          
           const { error: profileError } = await supabase
             .from('profiles')
             .insert([
@@ -171,6 +177,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
           if (profileError) {
             console.error('Error creating test profile:', profileError);
+            toast.error('Ошибка создания тестового профиля', {
+              description: profileError.message
+            });
             return;
           }
           
@@ -181,19 +190,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           
           if (loginError) {
+            console.error("Failed to login after creating test account:", loginError);
             toast.error('Не удалось войти с тестовым аккаунтом', {
               description: loginError.message
             });
             return;
           }
+        } else {
+          toast.error('Не удалось создать тестовый аккаунт');
+          return;
         }
       }
       
+      console.log("Test account login successful");
       toast.success('Вход с тестовым аккаунтом выполнен успешно');
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Ошибка при входе с тестовым аккаунтом:', error);
-      toast.error('Произошла ошибка при входе с тестовым аккаунтом');
+      toast.error('Произошла ошибка при входе с тестовым аккаунтом', {
+        description: error?.message || 'Неизвестная ошибка'
+      });
     }
   };
 
