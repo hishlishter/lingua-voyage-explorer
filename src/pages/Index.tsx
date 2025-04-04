@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, Profile, TestResult } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
@@ -13,9 +14,26 @@ import { Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Index = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, profile: authProfile } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  // Set a timeout to detect potential infinite loading issues
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (authLoading) {
+      timer = setTimeout(() => {
+        setLoadingTimeout(true);
+        console.log("Index page loading timeout reached");
+      }, 8000); // 8 seconds
+    }
+    
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [authLoading]);
   
   // Fetch user profile
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -23,6 +41,7 @@ const Index = () => {
     queryFn: async (): Promise<Profile | null> => {
       if (!user?.id) return null;
       
+      console.log("Index page fetching profile for:", user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -34,9 +53,11 @@ const Index = () => {
         return null;
       }
       
+      console.log("Index page profile data:", data);
       return data;
     },
     enabled: !!user?.id,
+    initialData: authProfile,
   });
 
   // Fetch test results for progress chart
@@ -134,6 +155,8 @@ const Index = () => {
   }, [searchQuery]);
 
   const isLoading = authLoading || profileLoading || testResultsLoading;
+  
+  console.log("Index rendering - loading:", isLoading, "user:", user?.id, "profile:", profile?.id);
 
   if (isLoading) {
     return (
@@ -143,6 +166,11 @@ const Index = () => {
           <Header />
           <div className="flex-1 p-6">
             <div className="max-w-5xl mx-auto space-y-8">
+              {loadingTimeout && (
+                <div className="bg-yellow-100 p-4 rounded-lg text-yellow-800 text-center">
+                  Загрузка занимает больше времени, чем обычно...
+                </div>
+              )}
               <div className="rounded-lg border p-6">
                 <div className="flex flex-col md:flex-row gap-6 items-start">
                   <Skeleton className="h-24 w-24 rounded-full" />

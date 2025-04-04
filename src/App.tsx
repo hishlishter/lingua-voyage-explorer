@@ -58,6 +58,21 @@ const AppRoutes = () => {
   
   console.log("AppRoutes - loading:", loading, "user:", user?.id);
   
+  // Add a maximum waiting time for loading - if it takes too long, assume there's an issue
+  React.useEffect(() => {
+    let timeout: NodeJS.Timeout | null = null;
+    
+    if (loading) {
+      timeout = setTimeout(() => {
+        console.log("Loading timeout reached - possible auth issue");
+      }, 5000);  // 5 seconds timeout
+    }
+    
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [loading]);
+  
   if (loading) {
     return <LoadingScreen />;
   }

@@ -25,7 +25,8 @@ const Header: React.FC<HeaderProps> = ({ onSearch, title }) => {
     navigate('/auth');
   };
   
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined) => {
+    if (!name) return "U";
     return name
       .split(' ')
       .map(part => part[0])
@@ -95,7 +96,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch, title }) => {
               onClick={() => navigate('/settings')}
             >
               <AvatarImage src={profile?.avatar_url || undefined} />
-              <AvatarFallback>{profile?.name ? getInitials(profile.name) : "U"}</AvatarFallback>
+              <AvatarFallback>{getInitials(profile?.name)}</AvatarFallback>
             </Avatar>
           ) : (
             <Button 
