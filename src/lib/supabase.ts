@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Default development values (these will be used if no env variables are set)
-const devSupabaseUrl = 'https://your-dev-project.supabase.co';
-const devSupabaseKey = 'your-dev-anon-key';
+const devSupabaseUrl = 'https://ejyyiilgghontvdrwuns.supabase.co';
+const devSupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4MDQ5MTcsImV4cCI6MjA1OTM4MDkxN30.7D9cXz83YsCXbvEVPIQupCpMJe_o_C8IKrQ-FUXUz3s';
 
 // Use environment variables if available, otherwise use development defaults
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || devSupabaseUrl;
@@ -38,6 +38,7 @@ export type Test = {
   questions_count: number;
   time_limit: number;
   created_at?: string;
+  questions?: Question[]; // Add the questions array to fix TypeScript errors
 };
 
 export type Question = {
@@ -46,6 +47,7 @@ export type Question = {
   text: string;
   order_num: number;
   created_at?: string;
+  options?: Option[]; // Add the options array for convenience
 };
 
 export type Option = {
