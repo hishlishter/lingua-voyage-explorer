@@ -89,11 +89,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
       
       <div className="w-full mt-6 grid grid-cols-2 gap-4 text-center">
         <div className="py-3 px-2">
-          <p className="text-muted-foreground text-sm">Уроков</p>
+          <p className="text-muted-foreground text-sm">Пройдено тестов</p>
           <p className="text-3xl font-bold">{lessonsCompleted}</p>
         </div>
         <div className="py-3 px-2 border-l border-gray-200">
-          <p className="text-muted-foreground text-sm">Курсов</p>
+          <p className="text-muted-foreground text-sm">Пройдено курсов</p>
           <p className="text-3xl font-bold">{coursesCompleted}</p>
         </div>
       </div>

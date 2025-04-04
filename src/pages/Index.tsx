@@ -45,8 +45,8 @@ const Index = () => {
               <UserProfile 
                 name="Али Сарур" 
                 email="vip.sarur@mail.ru" 
-                lessonsCompleted={24} 
-                coursesCompleted={1} 
+                lessonsCompleted={7} 
+                coursesCompleted={2} 
               />
               <QuickActions />
             </div>

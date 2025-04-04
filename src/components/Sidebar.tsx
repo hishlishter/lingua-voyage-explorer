@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Book, BookOpen, Calendar, Settings, LogOut, Home } from 'lucide-react';
+import { Book, BookOpen, Brain, Settings, LogOut, Home } from 'lucide-react';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -66,15 +66,15 @@ const Sidebar = () => {
           </li>
           <li>
             <Link
-              to="/lessons"
+              to="/tests"
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                isActive('/lessons') 
+                isActive('/tests') 
                   ? 'bg-white/80 text-gray-800 shadow-md font-medium' 
                   : 'hover:bg-white/20'
               }`}
             >
-              <Calendar size={20} />
-              <span>Доступные уроки</span>
+              <Brain size={20} />
+              <span>Тесты</span>
             </Link>
           </li>
         </ul>
