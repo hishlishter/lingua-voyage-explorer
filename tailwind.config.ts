@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -89,6 +90,13 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
+			},
+			fontFamily: {
+				sans: ['Inter', 'sans-serif'],
+				display: ['Playfair Display', 'serif']
+			},
+			gradients: {
+				'pink-purple': 'linear-gradient(135deg, #f687b3 0%, #b794f4 100%)',
 			}
 		}
 	},
