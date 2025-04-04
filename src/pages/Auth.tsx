@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Card, 
   CardContent, 
@@ -11,7 +10,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useToast } from "@/hooks/use-toast";
 import { 
   Form,
   FormControl,
@@ -23,6 +21,7 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useAuth } from '@/context/AuthContext';
 
 const loginSchema = z.object({
   email: z.string().email("Введите корректный email"),
@@ -44,8 +43,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signIn, signUp } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -65,30 +64,23 @@ const Auth = () => {
     },
   });
 
-  const onLoginSubmit = (values: LoginFormValues) => {
-    console.log("Login submitted:", values);
-    // In a real app, you would call your authentication API here
-    
-    toast({
-      title: "Вход выполнен успешно",
-      description: "Добро пожаловать обратно!",
-    });
-    
-    // Redirect to home page after successful login
-    navigate("/");
+  const onLoginSubmit = async (values: LoginFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await signIn(values.email, values.password);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
-  const onRegisterSubmit = (values: RegisterFormValues) => {
-    console.log("Register submitted:", values);
-    // In a real app, you would call your registration API here
-    
-    toast({
-      title: "Регистрация успешна",
-      description: "Теперь вы можете войти в систему!",
-    });
-    
-    // Switch to the login form after successful registration
-    setIsLogin(true);
+  const onRegisterSubmit = async (values: RegisterFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await signUp(values.email, values.password, values.name);
+      setIsLogin(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -144,7 +136,9 @@ const Auth = () => {
                   )}
                 />
                 
-                <Button type="submit" className="w-full">Войти</Button>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Вход..." : "Войти"}
+                </Button>
               </form>
             </Form>
           ) : (
@@ -206,7 +200,9 @@ const Auth = () => {
                   )}
                 />
                 
-                <Button type="submit" className="w-full">Зарегистрироваться</Button>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Регистрация..." : "Зарегистрироваться"}
+                </Button>
               </form>
             </Form>
           )}

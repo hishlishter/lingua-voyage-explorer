@@ -6,23 +6,36 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase, Profile } from '@/lib/supabase';
 
-interface UserProfileProps {
-  name: string;
-  email: string;
-  lessonsCompleted: number;
-  coursesCompleted: number;
-}
-
-const UserProfile: React.FC<UserProfileProps> = ({
-  name,
-  email,
-  lessonsCompleted,
-  coursesCompleted,
-}) => {
+const UserProfile = () => {
+  const { user } = useAuth();
   const [avatar, setAvatar] = useState('/lovable-uploads/e4b09532-4201-484c-9fbf-205eebe30a2f.png');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempAvatarURL, setTempAvatarURL] = useState('');
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async (): Promise<Profile | null> => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Ошибка получения профиля:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!user
+  });
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,6 +60,22 @@ const UserProfile: React.FC<UserProfileProps> = ({
       .toUpperCase();
   };
 
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
+        <div>Загрузка профиля...</div>
+      </div>
+    );
+  }
+
+  if (!profile || !user) {
+    return (
+      <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
+        <div>Профиль не найден</div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -54,7 +83,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
           <div className="relative cursor-pointer group">
             <Avatar className="w-24 h-24 border-4 border-white shadow-md">
               <AvatarImage src={avatar} />
-              <AvatarFallback>{getInitials(name)}</AvatarFallback>
+              <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
               <Camera className="text-white" size={24} />
@@ -69,7 +98,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
             <div className="flex justify-center">
               <Avatar className="w-24 h-24">
                 <AvatarImage src={tempAvatarURL || avatar} />
-                <AvatarFallback>{getInitials(name)}</AvatarFallback>
+                <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
               </Avatar>
             </div>
             <div className="space-y-2">
@@ -84,17 +113,17 @@ const UserProfile: React.FC<UserProfileProps> = ({
         </DialogContent>
       </Dialog>
       
-      <h3 className="mt-4 text-xl font-semibold">{name}</h3>
-      <p className="text-muted-foreground text-sm">{email}</p>
+      <h3 className="mt-4 text-xl font-semibold">{profile.name}</h3>
+      <p className="text-muted-foreground text-sm">{profile.email}</p>
       
       <div className="w-full mt-6 grid grid-cols-2 gap-4 text-center">
         <div className="py-3 px-2">
           <p className="text-muted-foreground text-sm">Пройдено тестов</p>
-          <p className="text-3xl font-bold">{lessonsCompleted}</p>
+          <p className="text-3xl font-bold">{profile.tests_completed || 0}</p>
         </div>
         <div className="py-3 px-2 border-l border-gray-200">
           <p className="text-muted-foreground text-sm">Пройдено курсов</p>
-          <p className="text-3xl font-bold">{coursesCompleted}</p>
+          <p className="text-3xl font-bold">{profile.courses_completed || 0}</p>
         </div>
       </div>
     </div>
