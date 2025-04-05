@@ -60,23 +60,26 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
       if (!user) return [];
       
       try {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31);
-        
+        // Исправляем запрос, чтобы он работал с правильными полями
         const { data, error } = await supabase
           .from('test_results')
           .select('*')
-          .eq('user_id', user.id)
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString())
-          .order('created_at');
+          .eq('user_id', user.id);
         
         if (error) {
           console.error('Error fetching test results:', error);
           return [];
         }
         
-        return data || [];
+        // Отфильтруем результаты по году
+        const filteredByYear = data?.filter(result => {
+          const createdAt = result.created_at ? new Date(result.created_at) : null;
+          return createdAt && createdAt.getFullYear() === year;
+        }) || [];
+
+        console.log('Filtered test results for year', year, ':', filteredByYear);
+        
+        return filteredByYear;
       } catch (error) {
         console.error('Error fetching test results:', error);
         return [];
@@ -108,8 +111,16 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     const monthlyScores: Record<number, number[]> = {};
     
     if (testResults && testResults.length > 0) {
+      console.log('Processing test results for chart:', testResults);
+      
       // Заполняем данные о результатах по месяцам
       testResults.forEach(result => {
+        // Проверяем наличие created_at
+        if (!result.created_at) {
+          console.log('Test result missing created_at:', result);
+          return;
+        }
+        
         const date = new Date(result.created_at);
         const month = date.getMonth();
         
@@ -120,6 +131,8 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
         // Вычисляем процент правильных ответов
         const scorePercent = (result.score / result.total_questions) * 10;
         monthlyScores[month].push(scorePercent);
+        
+        console.log(`Added score for ${monthNames[month]}: ${scorePercent.toFixed(1)}`);
       });
     }
     
@@ -137,6 +150,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
       };
     });
     
+    console.log('Chart data prepared:', data);
     setChartData(data);
   }, [testResults, year]);
   

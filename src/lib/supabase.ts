@@ -232,22 +232,36 @@ export const saveTestResult = async (userId: string, testId: string, score: numb
       throw resultError;
     }
     
-    // Обновляем счетчик пройденных тестов в профиле
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('tests_completed')
-      .eq('id', userId)
-      .single();
-    
-    if (profileData) {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ tests_completed: (profileData.tests_completed || 0) + 1 })
-        .eq('id', userId);
+    // Проверяем, проходил ли пользователь этот тест ранее
+    const { data: existingResults, error: checkError } = await supabase
+      .from('test_results')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('test_id', testId);
       
-      if (updateError) {
-        console.error('Ошибка обновления счетчика тестов в профиле:', updateError);
-        throw updateError;
+    if (checkError) {
+      console.error('Ошибка при проверке предыдущих результатов:', checkError);
+    }
+    
+    // Обновляем счетчик только если это первое прохождение теста
+    if (!existingResults || existingResults.length <= 1) {
+      // Обновляем счетчик пройденных тестов в профиле
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('tests_completed')
+        .eq('id', userId)
+        .single();
+      
+      if (profileData) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ tests_completed: (profileData.tests_completed || 0) + 1 })
+          .eq('id', userId);
+        
+        if (updateError) {
+          console.error('Ошибка обновления счетчика тестов в профиле:', updateError);
+          throw updateError;
+        }
       }
     }
     
