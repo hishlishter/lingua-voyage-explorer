@@ -422,31 +422,61 @@ export const updateCourseProgress = async (
   courseId: string, 
   lessonId: string, 
   lessonsCompleted: number, 
-  isCompleted: boolean
+  isCompleted: boolean,
+  updateCompletedLessons: boolean = false,
+  completedLessons: string[] = []
 ): Promise<boolean> => {
   try {
     console.log(`Обновление прогресса курса: пользователь=${userId}, курс=${courseId}, урок=${lessonId}`);
     
     const { data: existingProgress } = await supabase
       .from('course_progress')
-      .select('id')
+      .select('id, completed_lessons')
       .eq('user_id', userId)
       .eq('course_id', courseId)
       .maybeSingle();
     
     let result;
+    let completedLessonsData = completedLessons;
+    
+    // If we need to update the completed lessons and have existing progress
+    if (existingProgress && existingProgress.completed_lessons && !updateCompletedLessons) {
+      try {
+        // Try to parse the existing completed lessons
+        const existingCompletedLessons = typeof existingProgress.completed_lessons === 'string'
+          ? JSON.parse(existingProgress.completed_lessons)
+          : existingProgress.completed_lessons;
+        
+        // Only use existing data if it's valid
+        if (Array.isArray(existingCompletedLessons)) {
+          completedLessonsData = existingCompletedLessons;
+        }
+      } catch (err) {
+        console.error('Ошибка при разборе списка пройденных уроков:', err);
+      }
+    }
+    
+    // Prepare the data to update
+    const updateData: any = {
+      lessons_completed: lessonsCompleted,
+      is_completed: isCompleted,
+      last_lesson_id: lessonId,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Only update completed_lessons if we have new data
+    if (updateCompletedLessons && completedLessons.length > 0) {
+      updateData.completed_lessons = JSON.stringify(completedLessons);
+    }
     
     if (existingProgress) {
       result = await supabase
         .from('course_progress')
-        .update({
-          lessons_completed: lessonsCompleted,
-          is_completed: isCompleted,
-          last_lesson_id: lessonId,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', existingProgress.id);
     } else {
+      // For new records, always store completed_lessons
+      updateData.completed_lessons = JSON.stringify(completedLessonsData);
       result = await supabase
         .from('course_progress')
         .insert([{
@@ -454,7 +484,8 @@ export const updateCourseProgress = async (
           course_id: courseId,
           lessons_completed: lessonsCompleted,
           is_completed: isCompleted,
-          last_lesson_id: lessonId
+          last_lesson_id: lessonId,
+          completed_lessons: updateData.completed_lessons
         }]);
     }
     
