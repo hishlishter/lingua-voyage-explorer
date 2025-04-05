@@ -13,6 +13,7 @@ import Tests from "./pages/Tests";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import TestDetail from "./pages/TestDetail";
+import { AuthProvider } from "./context/AuthContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {

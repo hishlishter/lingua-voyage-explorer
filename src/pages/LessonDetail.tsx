@@ -375,8 +375,8 @@ const lessonContents = {
           text: 'Как образуется отрицание в Past Simple (кроме глагола "be")?',
           options: [
             { id: '4-3-1', text: 'no + глагол', isCorrect: false },
-            { id: '4-3-2', text: 'don't + глагол', isCorrect: false },
-            { id: '4-3-3', text: 'didn't + глагол', isCorrect: true },
+            { id: '4-3-2', text: "don't + глагол", isCorrect: false },
+            { id: '4-3-3', text: "didn't + глагол", isCorrect: true },
             { id: '4-3-4', text: 'not + глагол с -ed', isCorrect: false }
           ]
         }
