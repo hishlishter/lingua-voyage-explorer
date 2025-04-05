@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase, Question, Test, Option } from '@/lib/supabase';
+import { fetchTestWithQuestions, saveTestResult, Question, Test, Option } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,26 +24,26 @@ const TestDetail = () => {
   const [score, setScore] = useState(0);
 
   // Получение информации о тесте
-  const { data: test, isLoading } = useQuery({
+  const { data: test, isLoading, error } = useQuery({
     queryKey: ['test', id],
-    queryFn: async (): Promise<Test | null> => {
+    queryFn: async () => {
       if (!id) return null;
-      
-      const { data, error } = await supabase
-        .from('tests')
-        .select('*, questions(*, options(*))')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('Ошибка получения теста:', error);
-        toast.error('Не удалось загрузить тест');
-        return null;
-      }
-      
-      return data;
-    }
+      return fetchTestWithQuestions(id);
+    },
+    staleTime: 600000, // 10 минут кэширования
+    retry: 1,
+    refetchOnWindowFocus: false
   });
+  
+  // Показываем ошибку если есть
+  React.useEffect(() => {
+    if (error) {
+      console.error('Ошибка загрузки теста:', error);
+      toast.error('Не удалось загрузить тест', {
+        description: 'Пожалуйста, попробуйте вернуться к списку тестов'
+      });
+    }
+  }, [error]);
 
   // Мутация для сохранения результатов теста
   const saveResultMutation = useMutation({
@@ -53,33 +53,18 @@ const TestDetail = () => {
       score: number; 
       total_questions: number 
     }) => {
-      // Сохраняем результат теста
-      const { error: resultError } = await supabase
-        .from('test_results')
-        .insert([{
-          user_id: result.user_id,
-          test_id: result.test_id,
-          score: result.score,
-          total_questions: result.total_questions,
-        }]);
+      const success = await saveTestResult(
+        result.user_id,
+        result.test_id,
+        result.score,
+        result.total_questions
+      );
       
-      if (resultError) throw resultError;
-      
-      // Обновляем счетчик пройденных тестов в профиле
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('tests_completed')
-        .eq('id', result.user_id)
-        .single();
-      
-      if (profileData) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ tests_completed: (profileData.tests_completed || 0) + 1 })
-          .eq('id', result.user_id);
-        
-        if (updateError) throw updateError;
+      if (!success) {
+        throw new Error('Не удалось сохранить результаты');
       }
+      
+      return success;
     },
     onSuccess: () => {
       toast.success('Результаты сохранены');
@@ -128,6 +113,10 @@ const TestDetail = () => {
           test_id: id,
           score: correctAnswers,
           total_questions: test.questions?.length || 0,
+        });
+      } else {
+        toast.warning('Результаты не будут сохранены', {
+          description: 'Войдите в аккаунт, чтобы сохранять результаты'
         });
       }
     }

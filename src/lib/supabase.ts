@@ -6,14 +6,11 @@ const devSupabaseUrl = 'https://ejyyiilgghontvdrwuns.supabase.co';
 const devSupabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqeXlpaWxnZ2hvbnR2ZHJ3dW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3OTYwNzEsImV4cCI6MjA1OTM3MjA3MX0.ZMx420McFLRUBtg88_ll13_h3u7QmT7WmRaLU4VNZuc';
 
 // Use environment variables with correct Vite naming convention if available, otherwise use development defaults
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.REACT_APP_SUPABASE_URL || devSupabaseUrl;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.REACT_APP_SUPABASE_ANON_KEY || devSupabaseKey;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || devSupabaseUrl;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || devSupabaseKey;
 
 // Log missing environment variables warning
-if (
-  (!import.meta.env.VITE_SUPABASE_URL && !import.meta.env.REACT_APP_SUPABASE_URL) || 
-  (!import.meta.env.VITE_SUPABASE_ANON_KEY && !import.meta.env.REACT_APP_SUPABASE_ANON_KEY)
-) {
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
   console.warn('Using development Supabase configuration. For production, please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
 }
 
@@ -159,5 +156,132 @@ export const checkAuth = async () => {
   } catch (err) {
     console.error('Failed to check authentication:', err);
     return false;
+  }
+};
+
+// Функция для загрузки тестов
+export const fetchTests = async (): Promise<Test[]> => {
+  try {
+    console.log('Загрузка списка тестов...');
+    
+    const { data, error } = await supabase
+      .from('tests')
+      .select('*')
+      .order('id');
+    
+    if (error) {
+      console.error('Ошибка загрузки тестов:', error);
+      throw error;
+    }
+    
+    console.log('Успешно загружено тестов:', data?.length || 0);
+    return data || [];
+  } catch (err) {
+    console.error('Непредвиденная ошибка при загрузке тестов:', err);
+    return [];
+  }
+};
+
+// Функция для загрузки теста с вопросами и вариантами ответов
+export const fetchTestWithQuestions = async (testId: string): Promise<Test | null> => {
+  try {
+    console.log(`Загрузка теста с ID ${testId} с вопросами и вариантами ответов...`);
+    
+    const { data, error } = await supabase
+      .from('tests')
+      .select(`
+        *,
+        questions:questions(
+          *,
+          options:options(*)
+        )
+      `)
+      .eq('id', testId)
+      .single();
+    
+    if (error) {
+      console.error('Ошибка загрузки теста с вопросами:', error);
+      throw error;
+    }
+    
+    console.log('Успешно загружен тест с вопросами:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('Непредвиденная ошибка при загрузке теста с вопросами:', err);
+    return null;
+  }
+};
+
+// Функция для сохранения результатов теста
+export const saveTestResult = async (userId: string, testId: string, score: number, totalQuestions: number): Promise<boolean> => {
+  try {
+    console.log(`Сохранение результатов теста: пользователь=${userId}, тест=${testId}, баллы=${score}/${totalQuestions}`);
+    
+    // Сохраняем результат теста
+    const { error: resultError } = await supabase
+      .from('test_results')
+      .insert([{
+        user_id: userId,
+        test_id: testId,
+        score: score,
+        total_questions: totalQuestions,
+      }]);
+    
+    if (resultError) {
+      console.error('Ошибка сохранения результатов теста:', resultError);
+      throw resultError;
+    }
+    
+    // Обновляем счетчик пройденных тестов в профиле
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('tests_completed')
+      .eq('id', userId)
+      .single();
+    
+    if (profileData) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ tests_completed: (profileData.tests_completed || 0) + 1 })
+        .eq('id', userId);
+      
+      if (updateError) {
+        console.error('Ошибка обновления счетчика тестов в профиле:', updateError);
+        throw updateError;
+      }
+    }
+    
+    console.log('Результаты теста успешно сохранены');
+    return true;
+  } catch (err) {
+    console.error('Непредвиденная ошибка при сохранении результатов теста:', err);
+    return false;
+  }
+};
+
+// Функция для загрузки результатов тестов пользователя
+export const fetchTestResults = async (userId: string): Promise<any[]> => {
+  try {
+    console.log(`Загрузка результатов тестов для пользователя ${userId}...`);
+    
+    const { data, error } = await supabase
+      .from('test_results')
+      .select(`
+        *,
+        test:tests(title, difficulty)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Ошибка загрузки результатов тестов:', error);
+      throw error;
+    }
+    
+    console.log('Успешно загружено результатов тестов:', data?.length || 0);
+    return data || [];
+  } catch (err) {
+    console.error('Непредвиденная ошибка при загрузке результатов тестов:', err);
+    return [];
   }
 };

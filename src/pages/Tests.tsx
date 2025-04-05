@@ -1,33 +1,35 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase, Test } from '@/lib/supabase';
+import { fetchTests, Test } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Card, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Award, Clock, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Tests = () => {
   const navigate = useNavigate();
   
-  const { data: tests, isLoading } = useQuery({
+  const { data: tests, isLoading, error } = useQuery({
     queryKey: ['tests'],
-    queryFn: async (): Promise<Test[]> => {
-      const { data, error } = await supabase
-        .from('tests')
-        .select('*')
-        .order('id');
-      
-      if (error) {
-        console.error('Ошибка получения тестов:', error);
-        throw error;
-      }
-      
-      return data || [];
-    }
+    queryFn: fetchTests,
+    staleTime: 300000, // 5 минут кэширования
+    retry: 2,
+    refetchOnWindowFocus: false
   });
+  
+  // Показываем ошибку если есть
+  React.useEffect(() => {
+    if (error) {
+      console.error('Ошибка загрузки тестов:', error);
+      toast.error('Не удалось загрузить тесты', {
+        description: 'Пожалуйста, попробуйте обновить страницу позже'
+      });
+    }
+  }, [error]);
   
   return (
     <div className="flex min-h-screen bg-background">
@@ -50,9 +52,13 @@ const Tests = () => {
             
             {isLoading ? (
               <div className="text-center py-12">Загрузка тестов...</div>
-            ) : (
+            ) : error ? (
+              <div className="text-center py-12 text-red-500">
+                Ошибка загрузки тестов. Пожалуйста, попробуйте позже.
+              </div>
+            ) : tests && tests.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {tests?.map((test) => (
+                {tests.map((test) => (
                   <Card 
                     key={test.id} 
                     className="hover:shadow-md transition-shadow cursor-pointer"
@@ -67,16 +73,20 @@ const Tests = () => {
                       
                       <div className="flex items-center text-sm text-muted-foreground mb-4">
                         <Clock size={16} className="mr-1" />
-                        <span>10-15 минут</span>
+                        <span>{test.time_limit} минут</span>
                         <span className="mx-2">•</span>
                         <Award size={16} className="mr-1" />
-                        <span>Средний</span>
+                        <span>{test.difficulty}</span>
                       </div>
                       
                       <Button className="w-full">Начать тест</Button>
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                Пока нет доступных тестов. Пожалуйста, зайдите позже.
               </div>
             )}
           </div>
