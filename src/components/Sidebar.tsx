@@ -66,15 +66,15 @@ const Sidebar = () => {
           </li>
           <li>
             <Link
-              to="/courses"
+              to="/lessons"
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                isActive('/courses') 
+                isActive('/lessons') 
                   ? 'bg-white/80 text-gray-800 shadow-md font-medium' 
                   : 'hover:bg-white/20'
               }`}
             >
               <BookOpen size={20} />
-              <span>Курсы</span>
+              <span>Уроки</span>
             </Link>
           </li>
           <li>
