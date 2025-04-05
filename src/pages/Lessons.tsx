@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -48,7 +49,7 @@ const LessonSkeleton = () => (
 const demoLessons = [
   {
     id: 1,
-    title: 'Present Simple (Настоящее простое время)',
+    title: 'Present Simple: Базовые правила',
     description: 'Изучите правила образования и использования времени Present Simple. Узнайте, как образовывать утвердительные, отрицательные и вопросительные предложения.',
     level: 'beginner',
     icon: <BookOpen className="h-6 w-6" />,
@@ -56,10 +57,34 @@ const demoLessons = [
   },
   {
     id: 2,
-    title: 'Present Continuous (Настоящее длительное время)',
+    title: 'Present Continuous: Действия в процессе',
     description: 'Познакомьтесь с временем Present Continuous, его формированием и случаями употребления. Научитесь отличать его от Present Simple и правильно использовать в речи.',
     level: 'beginner',
     icon: <Languages className="h-6 w-6" />,
+    completed: false
+  },
+  {
+    id: 3,
+    title: 'Past Simple: События в прошлом',
+    description: 'Изучите правила образования и использования времени Past Simple для описания действий в прошлом. Освойте правильные и неправильные глаголы.',
+    level: 'beginner',
+    icon: <BookOpen className="h-6 w-6" />,
+    completed: false
+  },
+  {
+    id: 4,
+    title: 'Future Simple: Планы и предсказания',
+    description: 'Освойте правила использования Future Simple. Узнайте, как выражать будущие действия, делать предсказания, обещания и спонтанные решения.',
+    level: 'intermediate',
+    icon: <Languages className="h-6 w-6" />,
+    completed: false
+  },
+  {
+    id: 5,
+    title: 'Present Perfect: Связь прошлого с настоящим',
+    description: 'Изучите время Present Perfect и его использование для связи прошлого с настоящим. Поймете разницу между Present Perfect и Past Simple.',
+    level: 'intermediate',
+    icon: <GraduationCap className="h-6 w-6" />,
     completed: false
   }
 ];
