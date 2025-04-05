@@ -10,11 +10,11 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithTestAccount: () => Promise<void>;
   supabaseInitialized: boolean;
-  ensureUserProfile: (user: User) => Promise<Profile | null>;
+  ensureUserProfile: (user: User, name?: string) => Promise<Profile | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -80,37 +80,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const ensureUserProfile = async (user: User): Promise<Profile | null> => {
+  const ensureUserProfile = async (user: User, name?: string): Promise<Profile | null> => {
     if (!user) return null;
     
     try {
       console.log('Ensuring profile exists for user:', user.id);
       
-      // Create profile data
+      // Check if profile already exists
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching profile:', fetchError);
+        return null;
+      }
+      
+      // If profile exists, return it
+      if (existingProfile) {
+        console.log('Profile already exists, returning:', existingProfile);
+        localStorage.setItem(`profile_${user.id}`, JSON.stringify(existingProfile));
+        return existingProfile as Profile;
+      }
+      
+      // Create new profile data
+      const displayName = name || user.user_metadata?.name || user.email?.split('@')[0] || 'User';
+      
       const profileData: Profile = {
         id: user.id,
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        name: displayName,
         email: user.email || '',
         tests_completed: 0,
         courses_completed: 0
       };
       
-      // Try to create or update profile
-      const { success, data, error } = await createOrUpdateProfile(profileData);
+      console.log('Creating new profile for user:', profileData);
       
-      if (!success) {
-        console.error('Failed to ensure user profile:', error);
+      // Direct insert using supabase client
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert([profileData])
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('Failed to create profile directly:', insertError);
         toast.error('Ошибка создания профиля', {
-          description: error?.message || 'Неизвестная ошибка'
+          description: insertError.message
         });
-        return null;
-      }
-      
-      if (data) {
+        
+        // Fall back to helper function if direct insert failed
+        const { success, data } = await createOrUpdateProfile(profileData);
+        
+        if (!success || !data) {
+          console.error('Failed to create profile with helper:', data);
+          return null;
+        }
+        
         return data as Profile;
       }
       
-      return profileData;
+      console.log('New profile created successfully:', newProfile);
+      localStorage.setItem(`profile_${user.id}`, JSON.stringify(newProfile));
+      return newProfile as Profile;
     } catch (error) {
       console.error('Unexpected error in ensureUserProfile:', error);
       return null;
@@ -164,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name?: string) => {
     if (!supabaseInitialized) {
       toast.error('Cannot sign up - Supabase is not properly configured');
       return;
@@ -172,14 +206,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       setLoading(true);
-      console.log('Attempting registration for:', email);
+      console.log('Attempting registration for:', email, 'with name:', name);
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: email.split('@')[0]
+            name: name || email.split('@')[0]
           }
         }
       });
@@ -201,15 +235,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('User registered successfully:', data.user.id);
       
       // Create profile immediately after registration
-      const profile = await ensureUserProfile(data.user);
+      const profile = await ensureUserProfile(data.user, name);
       
       if (profile) {
-        console.log('Profile created successfully during signup');
+        console.log('Profile created successfully during signup:', profile);
+        toast.success('Регистрация выполнена успешно', {
+          description: 'Вы можете войти'
+        });
+      } else {
+        console.error('Failed to create profile during signup');
+        toast.warning('Аккаунт создан, но возникла проблема с профилем', {
+          description: 'Попробуйте войти'
+        });
       }
       
-      toast.success('Регистрация выполнена успешно', {
-        description: 'Вы можете войти'
-      });
       navigate('/auth');
     } catch (error) {
       console.error('Unexpected registration error:', error);
@@ -252,11 +291,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       toast.success('Выход выполнен успешно');
 
-      // Use timeout to avoid navigation issues
-      setTimeout(() => {
-        console.log('Navigating to auth page');
-        navigate('/auth');
-      }, 100);
+      // Navigate to auth page
+      navigate('/auth');
     } catch (error) {
       console.error('Unexpected sign out error:', error);
       toast.error('Произошла ошибка при выходе');

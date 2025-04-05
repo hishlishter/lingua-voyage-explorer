@@ -19,9 +19,9 @@ const Sidebar = () => {
     try {
       console.log('Attempting to sign out user:', user?.id);
       await signOut();
-      // We don't need to show toast here as it's already shown in the signOut function
+      // Toast is shown in signOut function
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error in sidebar:', error);
       toast.error('Ошибка при выходе из системы');
     }
   };

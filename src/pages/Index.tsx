@@ -1,7 +1,7 @@
 
 import React, { Suspense } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase, Profile, createOrUpdateProfile } from '@/lib/supabase';
+import { supabase, Profile } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
@@ -58,12 +58,12 @@ const Index = () => {
             return ensureUserProfile(user);
           }
           
-          // Return cached profile if available, or fallback
-          return cachedProfile || fallbackProfile;
+          throw error;
         }
         
+        console.log('Index: Successfully fetched profile:', data);
+        
         if (data) {
-          console.log('Index: Caching profile data:', data);
           localStorage.setItem(`profile_${user.id}`, JSON.stringify(data));
           return data;
         }

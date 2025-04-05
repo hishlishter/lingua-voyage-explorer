@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -10,10 +11,19 @@ import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Auth = () => {
-  const { signIn, signUp, signInWithTestAccount, supabaseInitialized } = useAuth();
+  const { signIn, signUp, signInWithTestAccount, supabaseInitialized, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
   
   // Show visual feedback when Supabase isn't initialized
   useEffect(() => {
@@ -29,7 +39,10 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      console.log('Attempting to sign in with email:', email);
       await signIn(email, password);
+    } catch (error) {
+      console.error('Sign in error in component:', error);
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +52,11 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signUp(email, password);
+      console.log('Attempting to sign up with email:', email);
+      const displayName = username || email.split('@')[0];
+      await signUp(email, password, displayName);
+    } catch (error) {
+      console.error('Sign up error in component:', error);
     } finally {
       setIsLoading(false);
     }
@@ -130,6 +147,17 @@ const Auth = () => {
               <CardContent>
                 <form onSubmit={handleSignUp}>
                   <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="signup-username">Имя пользователя</Label>
+                      <Input
+                        id="signup-username"
+                        type="text"
+                        placeholder="Ваше имя"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        disabled={isLoading || !supabaseInitialized}
+                      />
+                    </div>
                     <div className="grid gap-2">
                       <Label htmlFor="signup-email">Email</Label>
                       <Input
