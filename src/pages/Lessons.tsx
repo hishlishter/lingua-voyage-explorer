@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -94,7 +93,12 @@ const extractDescriptionFromContent = (content: string): string => {
   return textOnly.length > 150 ? textOnly.substring(0, 147) + '...' : textOnly;
 };
 
-const getLessonIconByLevel = (level: string) => {
+const getLessonIconByLevel = (level: string | undefined) => {
+  // Add a null check to handle undefined level
+  if (!level) {
+    return <Languages className="h-6 w-6" />; // Default icon if level is undefined
+  }
+  
   switch (level.toLowerCase()) {
     case 'начальный':
       return <Languages className="h-6 w-6" />;
