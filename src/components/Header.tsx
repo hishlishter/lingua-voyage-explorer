@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
-  // Wrap the hook in a check to ensure it's only called in a component context
+  // Safely use the useNavigate hook
   let navigate;
   try {
     navigate = useNavigate();

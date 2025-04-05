@@ -6,9 +6,10 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, GraduationCap, Play, Loader2 } from 'lucide-react';
+import { BookOpen, Clock, GraduationCap, Play, Loader2, Languages } from 'lucide-react';
 import { fetchCourses, Course } from '@/lib/supabase';
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const CourseSkeleton = () => (
   <Card className="overflow-hidden">
@@ -37,21 +38,21 @@ const CourseSkeleton = () => (
   </Card>
 );
 
-// Демо-курсы для отображения, пока не загрузятся реальные данные из базы
+// Demo courses with proper English language theory
 const demoCourses = [
   {
     id: '1',
     title: 'Английский для начинающих (A1)',
-    description: 'Изучите основы английского языка: алфавит, простые фразы, базовая грамматика.',
+    description: 'Изучите основы английского языка: алфавит, произношение, базовая грамматика. Освоите время Present Simple и научитесь представлять себя на английском.',
     lessons_count: 12,
     duration: '6 недель',
     level: 'Начальный',
-    icon: <BookOpen className="h-6 w-6" />
+    icon: <Languages className="h-6 w-6" />
   },
   {
     id: '2',
-    title: 'Разговорный английский (A2-B1)',
-    description: 'Практикуйте повседневное общение на английском языке.',
+    title: 'Грамматика английского (A2-B1)',
+    description: 'Углубленное изучение грамматики: времена Present Continuous, Past Simple, будущее время. Научитесь составлять различные типы предложений.',
     lessons_count: 10,
     duration: '5 недель',
     level: 'Начальный-Средний',
@@ -60,24 +61,33 @@ const demoCourses = [
   {
     id: '3',
     title: 'Деловой английский (B1-B2)',
-    description: 'Освойте профессиональную лексику и навыки ведения бизнес-переговоров.',
+    description: 'Деловая лексика, написание emails, проведение презентаций и ведение переговоров на английском. Изучение условных предложений и пассивного залога.',
     lessons_count: 8,
     duration: '4 недели',
     level: 'Средний',
-    icon: <BookOpen className="h-6 w-6" />
+    icon: <GraduationCap className="h-6 w-6" />
+  },
+  {
+    id: '4',
+    title: 'Разговорный английский (B1-B2)',
+    description: 'Разговорные фразы и идиомы, улучшение произношения и беглости речи. Практика диалогов в различных жизненных ситуациях.',
+    lessons_count: 9,
+    duration: '5 недель',
+    level: 'Средний',
+    icon: <Languages className="h-6 w-6" />
   }
 ];
 
 const getLevelIcon = (level: string) => {
   switch (level.toLowerCase()) {
     case 'начальный':
-      return <BookOpen className="h-6 w-6" />;
+      return <Languages className="h-6 w-6" />;
     case 'средний':
       return <BookOpen className="h-6 w-6" />;
     case 'продвинутый':
       return <GraduationCap className="h-6 w-6" />;
     default:
-      return <BookOpen className="h-6 w-6" />;
+      return <Languages className="h-6 w-6" />;
   }
 };
 
@@ -98,6 +108,9 @@ const Courses = () => {
 
   const handleStartCourse = (courseId: string) => {
     navigate(`/courses/${courseId}`);
+    toast.success("Курс успешно открыт", {
+      description: "Теперь вы можете изучать уроки и выполнять практические задания"
+    });
   };
 
   // Определяем, какие курсы показывать
