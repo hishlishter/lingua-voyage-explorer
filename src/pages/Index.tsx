@@ -118,9 +118,9 @@ const Index = () => {
               onRetry={handleRetry}
             />
             
-            {user && (
+            {(user || profileData) && (
               <Suspense fallback={<div className="text-center py-4">Загрузка...</div>}>
-                <Dashboard profile={profileData} />
+                <Dashboard profile={profileData || fallbackProfile} />
               </Suspense>
             )}
           </div>

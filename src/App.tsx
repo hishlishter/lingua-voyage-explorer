@@ -24,47 +24,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Modified protected route that doesn't show loading
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // Always render children without loading checks
-  return <>{children}</>;
-};
-
-const AppRoutes = () => {
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <Settings />
-        </ProtectedRoute>
-      } />
-      <Route path="/courses" element={
-        <ProtectedRoute>
-          <Courses />
-        </ProtectedRoute>
-      } />
-      <Route path="/dictionary" element={
-        <ProtectedRoute>
-          <Dictionary />
-        </ProtectedRoute>
-      } />
-      <Route path="/tests" element={
-        <ProtectedRoute>
-          <Tests />
-        </ProtectedRoute>
-      } />
-      <Route path="/tests/:id" element={
-        <ProtectedRoute>
-          <TestDetail />
-        </ProtectedRoute>
-      } />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -72,7 +31,16 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/dictionary" element={<Dictionary />} />
+            <Route path="/tests" element={<Tests />} />
+            <Route path="/tests/:id" element={<TestDetail />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

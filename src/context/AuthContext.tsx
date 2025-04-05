@@ -45,11 +45,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSupabaseInitialized(true);
           setSession(data.session);
           setUser(data.session?.user ?? null);
-          
-          // Ensure profile exists for logged in user
-          if (data.session?.user) {
-            await ensureUserProfile(data.session.user);
-          }
         }
       } catch (error) {
         console.error('Unexpected error during initialization:', error);
@@ -67,11 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Auth state changed:', _event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
-        
-        // Ensure profile exists when user signs in
-        if (session?.user) {
-          await ensureUserProfile(session.user);
-        }
       }
     );
 

@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, Profile, createOrUpdateProfile } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const UserProfile = () => {
   const { user, ensureUserProfile } = useAuth();
@@ -49,7 +50,7 @@ const UserProfile = () => {
     }
   }, [user?.id]);
   
-  const { data: profile, isLoading, refetch } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async (): Promise<Profile | null> => {
       if (!user) return null;
@@ -178,6 +179,20 @@ const UserProfile = () => {
   };
 
   const profileData = profile || localProfile || fallbackProfile;
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
+        <Skeleton className="w-24 h-24 rounded-full" />
+        <Skeleton className="h-6 w-32 mt-4" />
+        <Skeleton className="h-4 w-48 mt-2" />
+        <div className="w-full mt-6 grid grid-cols-2 gap-4">
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
