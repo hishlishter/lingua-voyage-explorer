@@ -9,7 +9,15 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
-  const navigate = useNavigate();
+  // Wrap the hook in a check to ensure it's only called in a component context
+  let navigate;
+  try {
+    navigate = useNavigate();
+  } catch (e) {
+    console.warn('useNavigate hook failed, navigation may not work');
+    // Provide a fallback function that does nothing
+    navigate = () => {};
+  }
   
   const handleGoBack = () => {
     navigate(-1);

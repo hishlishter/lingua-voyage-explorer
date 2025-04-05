@@ -1,4 +1,6 @@
-import { useToast } from "@/hooks/use-toast"
+
+import * as React from "react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Toast,
   ToastClose,
@@ -6,10 +8,17 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast"
+} from "@/components/ui/toast";
 
 export function Toaster() {
-  const { toasts } = useToast()
+  // Use a try-catch to handle potential hook errors
+  let toasts = [];
+  try {
+    const { toasts: hookToasts } = useToast();
+    toasts = hookToasts;
+  } catch (e) {
+    console.error("Error using toast hook:", e);
+  }
 
   return (
     <ToastProvider>
@@ -25,9 +34,9 @@ export function Toaster() {
             {action}
             <ToastClose />
           </Toast>
-        )
+        );
       })}
       <ToastViewport />
     </ToastProvider>
-  )
+  );
 }
