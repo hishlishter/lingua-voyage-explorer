@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -37,7 +36,7 @@ import {
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import TestResult from '@/components/TestResult';
-import { toast } from 'sonner';
+import { toast as sonnerToast } from 'sonner';
 
 const CourseDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,8 +100,7 @@ const CourseDetail = () => {
         id || '',
         lesson.id,
         progress?.lessons_completed || 0,
-        progress?.is_completed || false,
-        false
+        progress?.is_completed || false
       );
     }
   };
@@ -233,7 +231,7 @@ const CourseDetail = () => {
           // Обновляем данные о прогрессе
           refetchProgress();
           
-          toast.success("Урок успешно завершен!", {
+          sonnerToast("Урок успешно завершен!", {
             description: "Вы прошли тест на 100% и можете продолжить обучение."
           });
         }
