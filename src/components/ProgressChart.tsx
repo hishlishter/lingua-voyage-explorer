@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -15,7 +15,8 @@ interface ProgressChartProps {
 
 interface MonthlyScore {
   name: string;
-  value1: number;
+  tests: number;
+  lessons: number;
   isCurrentMonth: boolean;
 }
 
@@ -24,7 +25,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="bg-black/80 p-3 rounded-lg shadow-lg text-white text-sm">
         <p className="font-semibold">{label}</p>
-        <p className="text-purple-300">Баллы: {payload[0].value.toFixed(1)}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }}>
+            {entry.name === 'tests' ? 'Тесты' : 'Уроки'}: {entry.value.toFixed(1)}
+          </p>
+        ))}
       </div>
     );
   }
@@ -44,7 +49,8 @@ const generateEmptyData = () => {
   
   return monthNames.map((name, index) => ({
     name,
-    value1: 0,
+    tests: 0,
+    lessons: 0,
     isCurrentMonth: index === currentMonth && currentYear === new Date().getFullYear()
   }));
 };
@@ -54,7 +60,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
   const { user } = useAuth();
   
   // Получаем данные о результатах тестов пользователя
-  const { data: testResults, isLoading } = useQuery({
+  const { data: testResults, isLoading: isLoadingTests } = useQuery({
     queryKey: ['test-results', user?.id, year],
     queryFn: async () => {
       if (!user) return [];
@@ -90,6 +96,43 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     refetchInterval: false // Отключаем автоматическое обновление
   });
   
+  // Получаем данные о пройденных уроках
+  const { data: lessonResults, isLoading: isLoadingLessons } = useQuery({
+    queryKey: ['lesson-progress', user?.id, year],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      try {
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31);
+        
+        const { data, error } = await supabase
+          .from('lesson_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString())
+          .order('created_at');
+        
+        if (error) {
+          console.error('Error fetching lesson progress:', error);
+          return [];
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error('Error fetching lesson progress:', error);
+        return [];
+      }
+    },
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+    staleTime: 300000, // 5 минут
+    retry: 1,
+    placeholderData: [], // Используем пустой массив в качестве заглушки
+    refetchInterval: false // Отключаем автоматическое обновление
+  });
+  
   // Подготавливаем данные для графика
   const [chartData, setChartData] = useState<MonthlyScore[]>(generateEmptyData());
   
@@ -105,40 +148,61 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     const currentYear = new Date().getFullYear();
     
     // Создаем структуру для хранения результатов по месяцам
-    const monthlyScores: Record<number, number[]> = {};
+    const monthlyTestScores: Record<number, number[]> = {};
+    const monthlyLessonScores: Record<number, number[]> = {};
     
+    // Заполняем данные о результатах тестов по месяцам
     if (testResults && testResults.length > 0) {
-      // Заполняем данные о результатах по месяцам
       testResults.forEach(result => {
         const date = new Date(result.created_at);
         const month = date.getMonth();
         
-        if (!monthlyScores[month]) {
-          monthlyScores[month] = [];
+        if (!monthlyTestScores[month]) {
+          monthlyTestScores[month] = [];
         }
         
         // Вычисляем процент правильных ответов
         const scorePercent = (result.score / result.total_questions) * 10;
-        monthlyScores[month].push(scorePercent);
+        monthlyTestScores[month].push(scorePercent);
+      });
+    }
+    
+    // Заполняем данные о пройденных уроках по месяцам
+    if (lessonResults && lessonResults.length > 0) {
+      lessonResults.forEach(result => {
+        const date = new Date(result.created_at);
+        const month = date.getMonth();
+        
+        if (!monthlyLessonScores[month]) {
+          monthlyLessonScores[month] = [];
+        }
+        
+        // Каждый пройденный урок добавляет 1 балл
+        monthlyLessonScores[month].push(1);
       });
     }
     
     // Преобразуем данные в формат для графика
     const data = monthNames.map((name, index) => {
-      const scores = monthlyScores[index] || [];
-      const avgScore = scores.length > 0 
-        ? scores.reduce((sum, score) => sum + score, 0) / scores.length 
+      const testScores = monthlyTestScores[index] || [];
+      const lessonScores = monthlyLessonScores[index] || [];
+      
+      const avgTestScore = testScores.length > 0 
+        ? testScores.reduce((sum, score) => sum + score, 0) / testScores.length 
         : 0;
+        
+      const totalLessons = lessonScores.length;
       
       return {
         name,
-        value1: avgScore,
+        tests: avgTestScore,
+        lessons: totalLessons > 10 ? 10 : totalLessons, // Масштабируем до 10 для визуализации
         isCurrentMonth: index === currentMonth && year === currentYear
       };
     });
     
     setChartData(data);
-  }, [testResults, year]);
+  }, [testResults, lessonResults, year]);
   
   // Определяем, нужно ли показывать будущие месяцы
   const currentYear = new Date().getFullYear();
@@ -196,9 +260,18 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
               />
               <YAxis hide domain={[0, 10]} />
               <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                payload={[
+                  { value: 'Тесты', type: 'line', color: '#B794F4' },
+                  { value: 'Уроки', type: 'line', color: '#F687B3' }
+                ]}
+                verticalAlign="top"
+                height={36}
+              />
               <Line 
                 type="monotone" 
-                dataKey="value1" 
+                dataKey="tests" 
+                name="Тесты"
                 stroke="#B794F4" 
                 strokeWidth={3} 
                 dot={(props) => {
@@ -206,7 +279,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                   const { cx, cy, payload } = props;
                   
                   // Если это текущий месяц, показываем особую точку и балл над ней
-                  if (payload.isCurrentMonth) {
+                  if (payload && payload.isCurrentMonth) {
                     return (
                       <g>
                         <circle 
@@ -225,7 +298,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                           fontSize="12" 
                           fontWeight="bold"
                         >
-                          {payload.value1.toFixed(1)}
+                          {payload.tests.toFixed(1)}
                         </text>
                       </g>
                     );
@@ -235,6 +308,47 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                   return null;
                 }}
                 activeDot={{ r: 6, fill: '#B794F4', stroke: '#fff', strokeWidth: 2 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="lessons" 
+                name="Уроки"
+                stroke="#F687B3" 
+                strokeWidth={3} 
+                dot={(props) => {
+                  // Для точек используем особую логику отображения
+                  const { cx, cy, payload } = props;
+                  
+                  // Если это текущий месяц, показываем особую точку и балл над ней
+                  if (payload && payload.isCurrentMonth) {
+                    return (
+                      <g>
+                        <circle 
+                          cx={cx} 
+                          cy={cy} 
+                          r={6} 
+                          fill="#F687B3" 
+                          stroke="#fff" 
+                          strokeWidth={2}
+                        />
+                        <text 
+                          x={cx} 
+                          y={cy - 30} 
+                          textAnchor="middle" 
+                          fill="#333" 
+                          fontSize="12" 
+                          fontWeight="bold"
+                        >
+                          {payload.lessons.toFixed(0)}
+                        </text>
+                      </g>
+                    );
+                  }
+                  
+                  // Для остальных месяцев точек нет
+                  return null;
+                }}
+                activeDot={{ r: 6, fill: '#F687B3', stroke: '#fff', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>

@@ -2,7 +2,6 @@
 import React from 'react';
 import UserProfile from '@/components/UserProfile';
 import ProgressChart from '@/components/ProgressChart';
-import QuickActions from '@/components/QuickActions';
 import { Profile } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery } from '@tanstack/react-query';
@@ -68,7 +67,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
               Ваши достижения
             </CardTitle>
             <CardDescription>
-              Информация о вашем прогрессе в обучении
+              Информация о вашем прогрессе в обучении за сегодня
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -76,31 +75,21 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
               <div className="flex items-center justify-between border-b pb-2">
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-blue-500" />
-                  <span className="text-sm font-medium">Пройдено уроков</span>
+                  <span className="text-sm font-medium">Пройдено уроков за сегодня</span>
                 </div>
                 <span className="text-lg font-bold">{totalCompletedLessons}</span>
-              </div>
-              
-              <div className="flex items-center justify-between border-b pb-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-sm font-medium">Пройдено курсов</span>
-                </div>
-                <span className="text-lg font-bold">{profile.courses_completed || 0}</span>
               </div>
               
               <div className="flex items-center justify-between pb-2">
                 <div className="flex items-center gap-2">
                   <Award className="h-5 w-5 text-amber-500" />
-                  <span className="text-sm font-medium">Пройдено тестов</span>
+                  <span className="text-sm font-medium">Пройдено тестов за сегодня</span>
                 </div>
                 <span className="text-lg font-bold">{profile.tests_completed || 0}</span>
               </div>
             </div>
           </CardContent>
         </Card>
-        
-        <QuickActions />
       </div>
     </>
   );
