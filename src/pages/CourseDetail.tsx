@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
@@ -20,13 +20,15 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  Edit3 
+  Edit3,
+  Lock,
+  CheckCircle 
 } from 'lucide-react';
 import { 
   fetchCourseWithLessons, 
   fetchCourseProgress, 
   updateCourseProgress, 
-  fetchPracticeTestForLesson, 
+  fetchPracticeTestForLesson,  
   savePracticeTestResult, 
   Course, 
   Lesson, 
@@ -35,6 +37,7 @@ import {
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import TestResult from '@/components/TestResult';
+import { toast } from 'sonner';
 
 const CourseDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +54,8 @@ const CourseDetail = () => {
   const [isTestSubmitted, setIsTestSubmitted] = useState(false);
   const [testScore, setTestScore] = useState(0);
   const [showTestResult, setShowTestResult] = useState(false);
+  const [isPerfectScore, setIsPerfectScore] = useState(false);
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
 
   // Загрузка курса с уроками
   const { data: course, isLoading: isLoadingCourse } = useQuery({
@@ -60,14 +65,26 @@ const CourseDetail = () => {
   });
 
   // Загрузка прогресса пользователя по курсу
-  const { data: progress, isLoading: isLoadingProgress } = useQuery({
+  const { data: progress, isLoading: isLoadingProgress, refetch: refetchProgress } = useQuery({
     queryKey: ['courseProgress', id, user?.id],
     queryFn: () => fetchCourseProgress(user?.id || '', id || ''),
     enabled: !!id && !!user?.id,
   });
 
   // Обработчик выбора урока
-  const handleSelectLesson = (lesson: Lesson) => {
+  const handleSelectLesson = (lesson: Lesson, index: number) => {
+    // Проверяем, доступен ли урок для прохождения
+    const previousLessonsCompleted = index === 0 || completedLessons.includes(course?.lessons[index - 1].id || '');
+    
+    if (!previousLessonsCompleted && user?.id) {
+      toast({
+        title: "Урок недоступен",
+        description: "Сначала пройдите предыдущий урок",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSelectedLessonId(lesson.id);
     setActiveTab('theory');
     setIsTestSubmitted(false);
@@ -78,32 +95,15 @@ const CourseDetail = () => {
     setOpenLessonId(lesson.id);
     
     if (user?.id) {
-      // Просчитываем количество пройденных уроков
-      const lessons = course?.lessons || [];
-      const currentLessonIndex = lessons.findIndex(l => l.id === lesson.id);
-      
-      // Считаем урок пройденным, если это последний урок в курсе
-      const isLastLesson = currentLessonIndex === lessons.length - 1;
-      const lessonsCompleted = Math.max(
-        currentLessonIndex + 1,
-        progress?.lessons_completed || 0
-      );
-      
-      // Обновляем прогресс прохождения курса
+      // Обновляем прогресс - отмечаем, что студент просмотрел урок
       updateCourseProgress(
         user.id,
         id || '',
         lesson.id,
-        lessonsCompleted,
-        isLastLesson
-      ).then(success => {
-        if (success && isLastLesson) {
-          toast({
-            title: "Поздравляем!",
-            description: "Вы успешно завершили курс!",
-          });
-        }
-      });
+        progress?.lessons_completed || 0,
+        progress?.is_completed || false,
+        false
+      );
     }
   };
 
@@ -122,8 +122,23 @@ const CourseDetail = () => {
     ? currentPracticeTest.questions[currentQuestionIndex]
     : null;
 
+  // Загружаем данные о пройденных уроках при загрузке страницы
+  useEffect(() => {
+    if (progress && progress.completed_lessons) {
+      try {
+        const completedLessonIds = typeof progress.completed_lessons === 'string' 
+          ? JSON.parse(progress.completed_lessons) 
+          : progress.completed_lessons;
+        setCompletedLessons(completedLessonIds || []);
+      } catch (e) {
+        console.error('Error parsing completed lessons:', e);
+        setCompletedLessons([]);
+      }
+    }
+  }, [progress]);
+
   // Выбираем первый урок по умолчанию или последний просмотренный
-  React.useEffect(() => {
+  useEffect(() => {
     if (course?.lessons && course.lessons.length > 0 && !selectedLessonId) {
       if (progress?.last_lesson_id) {
         setSelectedLessonId(progress.last_lesson_id);
@@ -158,7 +173,7 @@ const CourseDetail = () => {
   };
 
   // Завершение теста и подсчет результатов
-  const handleSubmitTest = () => {
+  const handleSubmitTest = async () => {
     if (!currentPracticeTest || !currentPracticeTest.questions) return;
     
     let score = 0;
@@ -176,14 +191,53 @@ const CourseDetail = () => {
     setIsTestSubmitted(true);
     setShowTestResult(true);
     
+    const isPerfect = score === currentPracticeTest.questions.length;
+    setIsPerfectScore(isPerfect);
+    
     // Сохраняем результаты теста, если пользователь авторизован
     if (user?.id && currentPracticeTest.id) {
-      savePracticeTestResult(
+      await savePracticeTestResult(
         user.id, 
         currentPracticeTest.id, 
         score, 
         currentPracticeTest.questions.length
       );
+      
+      // Если все ответы верные, отмечаем урок как завершенный
+      if (isPerfect && currentLesson) {
+        // Получаем текущий список пройденных уроков
+        let updatedCompletedLessons = [...completedLessons];
+        
+        // Добавляем урок в список пройденных, если его там еще нет
+        if (!updatedCompletedLessons.includes(currentLesson.id)) {
+          updatedCompletedLessons.push(currentLesson.id);
+          setCompletedLessons(updatedCompletedLessons);
+          
+          // Считаем количество пройденных уроков
+          const lessonsCompleted = updatedCompletedLessons.length;
+          
+          // Проверяем, завершен ли курс (все уроки пройдены)
+          const isCompleted = lessonsCompleted === course?.lessons?.length;
+          
+          // Обновляем прогресс курса
+          await updateCourseProgress(
+            user.id,
+            id || '',
+            currentLesson.id,
+            lessonsCompleted,
+            isCompleted,
+            true,
+            updatedCompletedLessons
+          );
+          
+          // Обновляем данные о прогрессе
+          refetchProgress();
+          
+          toast.success("Урок успешно завершен!", {
+            description: "Вы прошли тест на 100% и можете продолжить обучение."
+          });
+        }
+      }
     }
   };
 
@@ -253,7 +307,6 @@ const CourseDetail = () => {
     if (!question || !question.options) return null;
     
     const selectedOptionId = selectedAnswers[question.id];
-    const isAnswered = !!selectedOptionId;
     
     return (
       <div className="space-y-4">
@@ -333,7 +386,8 @@ const CourseDetail = () => {
                   <CardContent>
                     <div className="space-y-2">
                       {course.lessons?.map((lesson, index) => {
-                        const isCompleted = progress && progress.lessons_completed >= index + 1;
+                        const isCompleted = completedLessons.includes(lesson.id);
+                        const isLocked = index > 0 && !completedLessons.includes(course.lessons[index - 1].id);
                         
                         return (
                           <Collapsible 
@@ -342,18 +396,22 @@ const CourseDetail = () => {
                             onOpenChange={(open) => {
                               setOpenLessonId(open ? lesson.id : null);
                             }}
-                            className="border rounded-md"
+                            className={`border rounded-md ${isCompleted ? 'border-green-200' : ''}`}
                           >
                             <CollapsibleTrigger asChild>
                               <div 
                                 className={`flex items-center justify-between p-3 cursor-pointer ${
                                   selectedLessonId === lesson.id ? 'bg-primary/10' : ''
-                                }`}
+                                } ${isCompleted ? 'bg-green-50' : ''}`}
                               >
                                 <div className="flex items-center gap-2">
                                   {isCompleted ? (
                                     <div className="h-5 w-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
                                       <Check className="h-3 w-3" />
+                                    </div>
+                                  ) : isLocked ? (
+                                    <div className="h-5 w-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                                      <Lock className="h-3 w-3" />
                                     </div>
                                   ) : (
                                     <div className="h-5 w-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs">
@@ -362,6 +420,9 @@ const CourseDetail = () => {
                                   )}
                                   <span className="font-medium">{lesson.title}</span>
                                 </div>
+                                {isCompleted && (
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                )}
                                 {openLessonId === lesson.id ? (
                                   <ChevronUp className="h-4 w-4" />
                                 ) : (
@@ -372,14 +433,18 @@ const CourseDetail = () => {
                             <CollapsibleContent className="p-3 pt-0 border-t">
                               <div className="text-sm text-muted-foreground mb-3">
                                 {lesson.practice_tests?.length 
-                                  ? "Включает теорию и практические задания." 
+                                  ? "Включает теорию и тест для проверки знаний." 
                                   : "Содержит только теоретический материал."}
                               </div>
                               <Button 
                                 size="sm" 
-                                onClick={() => handleSelectLesson(lesson)}
+                                onClick={() => handleSelectLesson(lesson, index)}
+                                disabled={isLocked && !!user?.id}
+                                className={isCompleted ? "bg-green-600 hover:bg-green-700" : ""}
                               >
-                                {selectedLessonId === lesson.id ? 'Сейчас изучается' : 'Изучить урок'}
+                                {isLocked && user?.id ? 'Урок заблокирован' : 
+                                  selectedLessonId === lesson.id ? 'Сейчас изучается' : 
+                                  isCompleted ? 'Пройден' : 'Изучить урок'}
                               </Button>
                             </CollapsibleContent>
                           </Collapsible>
@@ -417,16 +482,27 @@ const CourseDetail = () => {
                             value="practice"
                             disabled={!currentLesson.practice_tests?.length}
                           >
-                            Практика
+                            Тест
                           </TabsTrigger>
                         </TabsList>
                         <TabsContent value="theory">
                           <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
+                          
+                          {currentLesson.practice_tests?.length > 0 && (
+                            <div className="mt-8 border-t pt-6">
+                              <Button 
+                                onClick={() => setActiveTab('practice')}
+                                className="w-full"
+                              >
+                                Перейти к тесту
+                              </Button>
+                            </div>
+                          )}
                         </TabsContent>
                         <TabsContent value="practice">
                           {!currentPracticeTest ? (
                             <div className="text-center text-muted-foreground p-8">
-                              <p className="mb-4">Практические задания для этого урока отсутствуют.</p>
+                              <p className="mb-4">Тест для этого урока отсутствует.</p>
                             </div>
                           ) : !currentQuestion ? (
                             <div className="text-center text-muted-foreground p-8">
@@ -500,8 +576,9 @@ const CourseDetail = () => {
                 open={showTestResult}
                 onClose={handleCloseTestResult}
                 score={testScore}
-                totalQuestions={currentPracticeTest.questions?.length || 0}
+                totalQuestions={currentPracticeTest.questions?.length ||.0}
                 testTitle={currentPracticeTest.title}
+                isPerfectScore={isPerfectScore}
               />
             )}
           </div>

@@ -170,6 +170,7 @@ export type CourseProgress = {
   lessons_completed: number;
   is_completed: boolean;
   last_lesson_id?: string;
+  completed_lessons?: string[] | string;
   created_at?: string;
   updated_at?: string;
 };
