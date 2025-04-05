@@ -6,7 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, GraduationCap, Play, Languages, CheckCircle } from 'lucide-react';
+import { BookOpen, Languages, GraduationCap, Play, CheckCircle } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuth } from '@/context/AuthContext';
@@ -57,25 +57,9 @@ const demoLessons = [
   {
     id: 2,
     title: 'Present Continuous (Настоящее длительное время)',
-    description: 'Познакомьтесь с временем Present Continuous, его формированием и случаями употребления. Научитесь о��личать его от Present Simple и правильно использовать в речи.',
+    description: 'Познакомьтесь с временем Present Continuous, его формированием и случаями употребления. Научитесь отличать его от Present Simple и правильно использовать в речи.',
     level: 'beginner',
     icon: <Languages className="h-6 w-6" />,
-    completed: false
-  },
-  {
-    id: 4,
-    title: 'Future Simple (Будущее простое время)',
-    description: 'Освойте правила использования Future Simple. Узнайте, как выражать будущие действия, делать предсказания, обещания и спонтанные решения.',
-    level: 'intermediate',
-    icon: <Languages className="h-6 w-6" />,
-    completed: false
-  },
-  {
-    id: 5,
-    title: 'Present Perfect (Настоящее совершенное время)',
-    description: 'Изучите время Present Perfect и его использование для связи прошлого с настоящим. Поймете разницу между Present Perfect и Past Simple.',
-    level: 'intermediate',
-    icon: <GraduationCap className="h-6 w-6" />,
     completed: false
   }
 ];

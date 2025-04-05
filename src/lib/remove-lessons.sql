@@ -4,22 +4,22 @@
 
 -- 1. Remove lesson progress entries
 DELETE FROM lesson_progress
-WHERE lesson_id IN (3, 6, 7, 9, 10);
+WHERE lesson_id IN (3, 4, 5, 6, 7, 9, 10);
 
 -- 2. Remove lesson questions associated with tests for these lessons
 DELETE FROM lesson_questions
 WHERE test_id IN (
   SELECT id FROM lesson_tests
-  WHERE lesson_id IN (3, 6, 7, 9, 10)
+  WHERE lesson_id IN (3, 4, 5, 6, 7, 9, 10)
 );
 
 -- 3. Remove lesson tests
 DELETE FROM lesson_tests
-WHERE lesson_id IN (3, 6, 7, 9, 10);
+WHERE lesson_id IN (3, 4, 5, 6, 7, 9, 10);
 
 -- 4. Finally, remove the lessons
 DELETE FROM lessons
-WHERE id IN (3, 6, 7, 9, 10);
+WHERE id IN (3, 4, 5, 6, 7, 9, 10);
 
 -- Optional: Reorder the remaining lessons to ensure continuity
 -- This updates the order_index to maintain sequential ordering
