@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, createOrUpdateProfile, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -220,28 +221,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      console.log('Starting signOut process');
       setLoading(true);
       
+      // Clear profile cache if user exists
       if (user?.id) {
+        console.log('Clearing cached profile for user:', user.id);
         localStorage.removeItem(`profile_${user.id}`);
       }
       
       if (supabaseInitialized) {
+        console.log('Calling Supabase signOut');
         const { error } = await supabase.auth.signOut();
         if (error) {
-          console.error('Sign out error:', error);
+          console.error('Supabase sign out error:', error);
           toast.error('Ошибка выхода', {
             description: error.message
           });
           return;
         }
+        console.log('Supabase signOut successful');
+      } else {
+        console.log('Skipping Supabase signOut as it is not initialized');
       }
       
+      // Always clear local state regardless of Supabase response
+      console.log('Clearing local user and session state');
       setUser(null);
       setSession(null);
       
       toast.success('Выход выполнен успешно');
-      navigate('/auth');
+
+      // Use timeout to avoid navigation issues
+      setTimeout(() => {
+        console.log('Navigating to auth page');
+        navigate('/auth');
+      }, 100);
     } catch (error) {
       console.error('Unexpected sign out error:', error);
       toast.error('Произошла ошибка при выходе');

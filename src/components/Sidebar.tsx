@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Book, BookOpen, Brain, Settings, LogOut, Home, LogIn, AlertCircle } from 'lucide-react';
@@ -16,6 +17,7 @@ const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
+      console.log('Attempting to sign out user:', user?.id);
       await signOut();
       // We don't need to show toast here as it's already shown in the signOut function
     } catch (error) {
