@@ -172,12 +172,12 @@ export const saveLessonTestResult = async (
   }
 };
 
-// Rename this function to fetchLessonProgress to allow both names to work
+// Function for both names to work
 export const fetchLessonProgress = async (userId: string): Promise<any[]> => {
   return fetchUserLessonProgress(userId);
 };
 
-// Original function name - keep it for backward compatibility
+// Original function name
 export const fetchUserLessonProgress = async (userId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase
@@ -197,9 +197,23 @@ export const fetchUserLessonProgress = async (userId: string): Promise<any[]> =>
   }
 };
 
-// Initialize grammar lessons in database
+// Initialize grammar lessons in database with error handling
 export const initializeGrammarLessons = async (): Promise<void> => {
   try {
+    // First, check if the lessons table exists
+    const { error: tableCheckError } = await supabase
+      .from('lessons')
+      .select('count(*)')
+      .limit(1)
+      .single();
+    
+    // If table doesn't exist, we need to create it using our migration SQL
+    if (tableCheckError && tableCheckError.code === '42P01') {
+      console.error('Таблица lessons не существует. Пожалуйста, примените SQL миграцию');
+      console.log('Используются демо-уроки вместо данных из базы');
+      return;
+    }
+    
     // Check if we already have the 5 grammar lessons
     const { data: existingLessons, error: checkError } = await supabase
       .from('lessons')
@@ -223,7 +237,7 @@ export const initializeGrammarLessons = async (): Promise<void> => {
       return;
     }
     
-    // Define our 5 grammar lessons
+    // Define our 5 grammar lessons with correct titles
     const grammarLessons = [
       {
         title: 'Present Simple',
@@ -741,7 +755,7 @@ export const initializeGrammarLessons = async (): Promise<void> => {
       }
     ];
     
-    // Insert the lessons into the database
+    // Insert the lessons into the database with proper error handling
     for (const lesson of grammarLessons) {
       const { data: newLesson, error } = await supabase
         .from('lessons')
@@ -771,8 +785,15 @@ export const initializeGrammarLessons = async (): Promise<void> => {
         continue;
       }
       
-      // Create questions for each test
+      // Fetch the newly created test to get its ID
       const testId = newTest[0].id;
+      
+      // Only proceed with question creation if we have a valid test ID
+      if (!testId) {
+        console.error(`Не удалось получить ID теста для урока "${lesson.title}"`);
+        continue;
+      }
+      
       let questions = [];
       
       // Generate different questions based on the lesson topic
@@ -1018,7 +1039,7 @@ export const initializeGrammarLessons = async (): Promise<void> => {
         ];
       }
       
-      // Insert questions for this test
+      // Insert questions for this test one by one
       for (const question of questions) {
         const { error: questionError } = await supabase
           .from('lesson_questions')
@@ -1029,7 +1050,7 @@ export const initializeGrammarLessons = async (): Promise<void> => {
           });
         
         if (questionError) {
-          console.error('Ошибка добавления вопроса:', questionError);
+          console.error(`Ошибка добавления вопроса для теста ${testId}:`, questionError);
         }
       }
     }

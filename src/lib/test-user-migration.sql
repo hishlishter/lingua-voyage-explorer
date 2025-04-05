@@ -1,4 +1,44 @@
 
+-- Создаем таблицу для уроков, если ее еще нет
+CREATE TABLE IF NOT EXISTS public.lessons (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  level VARCHAR(50) NOT NULL,
+  order_index INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Создаем таблицу для тестов уроков, если ее еще нет
+CREATE TABLE IF NOT EXISTS public.lesson_tests (
+  id SERIAL PRIMARY KEY,
+  lesson_id INTEGER REFERENCES public.lessons(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Создаем таблицу для вопросов тестов, если ее еще нет
+CREATE TABLE IF NOT EXISTS public.lesson_questions (
+  id SERIAL PRIMARY KEY,
+  test_id INTEGER REFERENCES public.lesson_tests(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  options JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Создаем таблицу для прогресса пользователей по урокам, если ее еще нет
+CREATE TABLE IF NOT EXISTS public.lesson_progress (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  lesson_id INTEGER REFERENCES public.lessons(id) ON DELETE CASCADE,
+  score INTEGER DEFAULT 0,
+  total_questions INTEGER DEFAULT 0,
+  is_completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Добавляем тестовые данные для профиля пользователя
 INSERT INTO profiles (id, name, email, tests_completed, courses_completed, created_at)
 VALUES 
