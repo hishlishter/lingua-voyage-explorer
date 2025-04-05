@@ -143,6 +143,37 @@ export type Option = {
   created_at?: string;
 };
 
+export type Course = {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  level: string;
+  lessons_count: number;
+  created_at?: string;
+  lessons?: Lesson[];
+};
+
+export type Lesson = {
+  id: string;
+  course_id: string;
+  title: string;
+  content: string;
+  order_number: number;
+  created_at?: string;
+};
+
+export type CourseProgress = {
+  id: string;
+  user_id: string;
+  course_id: string;
+  lessons_completed: number;
+  is_completed: boolean;
+  last_lesson_id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
 // Function to check if authentication is working
 export const checkAuth = async () => {
   try {
@@ -285,3 +316,160 @@ export const fetchTestResults = async (userId: string): Promise<any[]> => {
     return [];
   }
 };
+
+// Функция для загрузки курсов
+export const fetchCourses = async (): Promise<Course[]> => {
+  try {
+    console.log('Загрузка списка курсов...');
+    
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*')
+      .order('created_at');
+    
+    if (error) {
+      console.error('Ошибка загрузки курсов:', error);
+      throw error;
+    }
+    
+    console.log('Успешно загружено курсов:', data?.length || 0);
+    return data || [];
+  } catch (err) {
+    console.error('Непредвиденная ошибка при загрузке курсов:', err);
+    return [];
+  }
+};
+
+// Функция для загрузки курса с уроками
+export const fetchCourseWithLessons = async (courseId: string): Promise<Course | null> => {
+  try {
+    console.log(`Загрузка курса с ID ${courseId} с уроками...`);
+    
+    const { data, error } = await supabase
+      .from('courses')
+      .select(`
+        *,
+        lessons:lessons(*)
+      `)
+      .eq('id', courseId)
+      .single();
+    
+    if (error) {
+      console.error('Ошибка загрузки курса с уроками:', error);
+      throw error;
+    }
+    
+    // Сортируем уроки по порядку
+    if (data && data.lessons) {
+      data.lessons.sort((a, b) => a.order_number - b.order_number);
+    }
+    
+    console.log('Успешно загружен курс с уроками:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('Непредвиденная ошибка при загрузке курса с уроками:', err);
+    return null;
+  }
+};
+
+// Функция для обновления прогресса по курсу
+export const updateCourseProgress = async (
+  userId: string, 
+  courseId: string, 
+  lessonId: string, 
+  lessonsCompleted: number, 
+  isCompleted: boolean
+): Promise<boolean> => {
+  try {
+    console.log(`Обновление прогресса курса: пользователь=${userId}, курс=${courseId}, урок=${lessonId}`);
+    
+    // Проверяем, есть ли уже запись о прогрессе
+    const { data: existingProgress } = await supabase
+      .from('course_progress')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+      .maybeSingle();
+    
+    let result;
+    
+    if (existingProgress) {
+      // Обновляем существующий прогресс
+      result = await supabase
+        .from('course_progress')
+        .update({
+          lessons_completed: lessonsCompleted,
+          is_completed: isCompleted,
+          last_lesson_id: lessonId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingProgress.id);
+    } else {
+      // Создаем новую запись о прогрессе
+      result = await supabase
+        .from('course_progress')
+        .insert([{
+          user_id: userId,
+          course_id: courseId,
+          lessons_completed: lessonsCompleted,
+          is_completed: isCompleted,
+          last_lesson_id: lessonId
+        }]);
+    }
+    
+    const { error } = result;
+    
+    if (error) {
+      console.error('Ошибка обновления прогресса курса:', error);
+      return false;
+    }
+    
+    // Если курс завершен, обновляем счетчик пройденных курсов в профиле
+    if (isCompleted) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('courses_completed')
+        .eq('id', userId)
+        .single();
+      
+      if (profileData) {
+        await supabase
+          .from('profiles')
+          .update({ courses_completed: (profileData.courses_completed || 0) + 1 })
+          .eq('id', userId);
+      }
+    }
+    
+    console.log('Прогресс курса успешно обновлен');
+    return true;
+  } catch (err) {
+    console.error('Непредвиденная ошибка при обновлении прогресса курса:', err);
+    return false;
+  }
+};
+
+// Функция для получения прогресса пользователя по курсу
+export const fetchCourseProgress = async (userId: string, courseId: string): Promise<CourseProgress | null> => {
+  try {
+    console.log(`Загрузка прогресса курса: пользователь=${userId}, курс=${courseId}`);
+    
+    const { data, error } = await supabase
+      .from('course_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Ошибка загрузки прогресса курса:', error);
+      throw error;
+    }
+    
+    console.log('Прогресс курса:', data);
+    return data;
+  } catch (err) {
+    console.error('Непредвиденная ошибка при загрузке прогресса курса:', err);
+    return null;
+  }
+};
+
