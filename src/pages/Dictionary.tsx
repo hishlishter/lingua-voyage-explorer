@@ -5,31 +5,22 @@ import Header from '@/components/Header';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
-
-// Dictionary words interface
-interface DictionaryWord {
-  id: string;
-  word: string;
-  translation: string;
-  source?: string;
-}
+import { toast } from "sonner";
 
 const Dictionary = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<DictionaryWord[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchProgress, setSearchProgress] = useState(0);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
 
-  // Simulate searching on external dictionary API (Linguee)
-  const searchLinguee = async (query: string) => {
-    if (!query.trim()) return [];
+  // Search using WooordHunt
+  const searchWooordHunt = async (query: string) => {
+    if (!query.trim()) return;
     
     setIsSearching(true);
     setSearchProgress(0);
+    setHtmlContent(null);
     
     try {
       // Simulate API call with progress updates
@@ -47,55 +38,45 @@ const Dictionary = () => {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Simulate response from Linguee
-      const results: DictionaryWord[] = [];
-      
-      // Generate some fake results based on the query
-      if (query.match(/[а-яА-ЯёЁ]/)) {
-        // Russian query - generate English translations
-        const possibleTranslations = [
-          "the " + query,
-          query + "ing",
-          "to " + query,
-          query + "ly",
-          query + " (formal)",
-          query + " (informal)",
-          query + " (noun)",
-          query + " (verb)",
-        ];
-        
-        // Take up to 5 translations
-        for (let i = 0; i < Math.min(5, possibleTranslations.length); i++) {
-          results.push({
-            id: `linguee-${Date.now()}-${i}`,
-            word: query,
-            translation: possibleTranslations[i],
-            source: 'Linguee'
-          });
-        }
-      } else {
-        // English query - generate Russian translations
-        const possibleTranslations = [
-          query + "ать",
-          query + "ить",
-          query + "овать",
-          query + "ский",
-          query + "ный",
-          "пре" + query,
-          "про" + query,
-          "за" + query
-        ];
-        
-        // Take up to 5 translations
-        for (let i = 0; i < Math.min(5, possibleTranslations.length); i++) {
-          results.push({
-            id: `linguee-${Date.now()}-${i}`,
-            word: query,
-            translation: possibleTranslations[i],
-            source: 'Linguee'
-          });
-        }
-      }
+      // Generate a mock response that mimics WooordHunt content
+      let content = `
+        <div class="word-card">
+          <h2>${query}</h2>
+          
+          <div class="transcription">
+            ${query.match(/[а-яА-ЯёЁ]/) 
+              ? `[ru word]` 
+              : `[${query.split('').join('·')}]`
+            }
+          </div>
+          
+          <div class="translations">
+            <h3>Переводы:</h3>
+            <ul>
+              ${query.match(/[а-яА-ЯёЁ]/) 
+                ? `
+                  <li><strong>${query} (сущ.)</strong> — ${query.toLowerCase().split('').reverse().join('')}</li>
+                  <li><strong>${query} (глаг.)</strong> — to ${query.toLowerCase()}</li>
+                  <li><strong>${query} (прил.)</strong> — ${query.toLowerCase() + 'al'}</li>
+                `
+                : `
+                  <li><strong>${query} (noun)</strong> — ${query.toLowerCase() + 'ство'}</li>
+                  <li><strong>${query} (verb)</strong> — ${query.toLowerCase() + 'ать'}</li>
+                  <li><strong>${query} (adj)</strong> — ${query.toLowerCase() + 'ный'}</li>
+                `
+              }
+            </ul>
+          </div>
+          
+          <div class="examples">
+            <h3>Примеры:</h3>
+            <ul>
+              <li>This is an example with the word <strong>${query}</strong> in it — Это пример со словом <strong>${query}</strong>.</li>
+              <li>Another example using <strong>${query}</strong> in a sentence — Другой пример использования слова <strong>${query}</strong> в предложении.</li>
+            </ul>
+          </div>
+        </div>
+      `;
       
       clearInterval(progressInterval);
       setSearchProgress(100);
@@ -103,40 +84,32 @@ const Dictionary = () => {
       setTimeout(() => {
         setIsSearching(false);
         setSearchProgress(0);
+        setHtmlContent(content);
       }, 500);
       
-      return results;
     } catch (error) {
-      console.error('Error searching Linguee:', error);
-      toast.error('Ошибка при поиске в словаре Linguee');
+      console.error('Error searching WooordHunt:', error);
+      toast.error('Ошибка при поиске в словаре WooordHunt');
       setIsSearching(false);
       setSearchProgress(0);
-      return [];
     }
   };
 
   // Handle search
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setHasSearched(false);
+      setHtmlContent(null);
       return;
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    setHasSearched(true);
-    
-    // Search in Linguee
-    const lingueeResults = await searchLinguee(query);
-    setSearchResults(lingueeResults);
+    await searchWooordHunt(searchQuery);
   };
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     if (e.target.value === '') {
-      setSearchResults([]);
-      setHasSearched(false);
+      setHtmlContent(null);
     }
   };
 
@@ -158,7 +131,7 @@ const Dictionary = () => {
               <div className="bg-card rounded-xl shadow-sm p-6">
                 <h2 className="text-2xl font-bold mb-4">Русско-английский словарь</h2>
                 <p className="text-muted-foreground mb-6">
-                  Поиск и просмотр слов и их переводов (интегрировано с Linguee)
+                  Поиск слов в словаре WooordHunt
                 </p>
                 
                 <div className="flex gap-2 mb-6">
@@ -166,7 +139,7 @@ const Dictionary = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input 
                       type="search" 
-                      placeholder="Поиск по словам..." 
+                      placeholder="Введите слово для поиска..." 
                       className="pl-10"
                       value={searchQuery}
                       onChange={handleInputChange}
@@ -184,33 +157,23 @@ const Dictionary = () => {
                 
                 {isSearching && (
                   <div className="mb-6">
-                    <p className="text-sm text-muted-foreground mb-2">Поиск в Linguee...</p>
+                    <p className="text-sm text-muted-foreground mb-2">Поиск в WooordHunt...</p>
                     <Progress value={searchProgress} className="h-2" />
                   </div>
                 )}
                 
-                {searchResults.length > 0 ? (
-                  <div className="border rounded-lg divide-y">
-                    {searchResults.map((word) => (
-                      <div key={word.id} className="p-4 flex justify-between items-center hover:bg-accent/5">
-                        <div>
-                          <h3 className="font-medium">{word.word}</h3>
-                          <p className="text-sm text-muted-foreground">{word.translation}</p>
-                          {word.source && (
-                            <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full mt-1">
-                              {word.source}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                {htmlContent ? (
+                  <div className="border rounded-lg p-6">
+                    <div 
+                      className="woordhunt-content"
+                      dangerouslySetInnerHTML={{ __html: htmlContent }}
+                    />
                   </div>
-                ) : hasSearched ? (
+                ) : !isSearching && searchQuery ? (
                   <div className="text-center py-10">
                     <p className="text-muted-foreground">Ничего не найдено</p>
                     <Button variant="link" onClick={() => {
                       setSearchQuery('');
-                      setHasSearched(false);
                     }}>
                       Сбросить поиск
                     </Button>
