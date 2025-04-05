@@ -296,8 +296,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       console.log("Signing in with test account...");
       
+      // Use a real UUID format for test user to avoid foreign key constraint issues
       const testUser = {
-        id: 'test-user-id',
+        id: '00000000-0000-0000-0000-000000000001', // Valid UUID format
         email: 'test@example.com',
         user_metadata: {
           name: 'Test User'

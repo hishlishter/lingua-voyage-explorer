@@ -260,26 +260,6 @@ INSERT INTO lesson_questions (test_id, text, options) VALUES
    {"text": "Только для регулярных действий в настоящем", "is_correct": false}, 
    {"text": "Для действий, которые произойдут в будущем", "is_correct": false}]');
 
--- Добавляем тестовые данные для профиля пользователя
-INSERT INTO profiles (id, name, email, tests_completed, courses_completed, created_at)
-VALUES 
-  ('00000000-0000-0000-0000-000000000000', 'Тестовый Пользователь', 'test@example.com', 8, 3, now())
-ON CONFLICT (id) DO UPDATE 
-  SET name = EXCLUDED.name, 
-      email = EXCLUDED.email;
-
--- Добавляем тестовые данные для результатов тестов
-INSERT INTO test_results (id, user_id, test_id, score, total_questions, created_at)
-VALUES 
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '1', 8, 10, now() - interval '1 day'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '2', 9, 10, now() - interval '2 day'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '1', 7, 10, now() - interval '10 day'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '3', 6, 10, now() - interval '20 day'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '2', 8, 10, now() - interval '30 day'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '1', 9, 10, now() - interval '40 day'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '3', 10, 10, now() - interval '50 day'),
-  (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', '2', 8, 10, now() - interval '60 day');
-
 -- Добавляем колонку для URL аватара, если ее еще нет
 DO $$
 BEGIN
@@ -312,3 +292,53 @@ CREATE POLICY "Users can update their own avatars."
 CREATE POLICY "Users can delete their own avatars."
   ON storage.objects FOR DELETE
   USING (bucket_id = 'avatars');
+
+-- Модифицируем функцию обработки нового пользователя, чтобы добавлять тестовые результаты
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, tests_completed, courses_completed)
+  VALUES (new.id, 
+          COALESCE(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)), 
+          new.email,
+          0,
+          0);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Убираем ошибочную вставку тестового пользователя и добавляем правильную логику для него
+-- Вместо ошибочной вставки тестового пользователя напрямую в profiles,
+-- мы можем создать тестовые данные только для авторизованных пользователей
+
+-- Функция для добавления тестовых результатов для существующего пользователя
+CREATE OR REPLACE FUNCTION public.add_test_data_for_user(user_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  -- Обновляем счетчики в профиле
+  UPDATE profiles
+  SET tests_completed = 8,
+      courses_completed = 3
+  WHERE id = user_id;
+  
+  -- Добавляем тестовые результаты тестов
+  INSERT INTO test_results (id, user_id, test_id, score, total_questions, created_at)
+  VALUES 
+    (gen_random_uuid(), user_id, '1', 8, 10, now() - interval '1 day'),
+    (gen_random_uuid(), user_id, '2', 9, 10, now() - interval '2 day'),
+    (gen_random_uuid(), user_id, '1', 7, 10, now() - interval '10 day'),
+    (gen_random_uuid(), user_id, '3', 6, 10, now() - interval '20 day'),
+    (gen_random_uuid(), user_id, '2', 8, 10, now() - interval '30 day'),
+    (gen_random_uuid(), user_id, '1', 9, 10, now() - interval '40 day'),
+    (gen_random_uuid(), user_id, '3', 10, 10, now() - interval '50 day'),
+    (gen_random_uuid(), user_id, '2', 8, 10, now() - interval '60 day');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Теперь вместо прямой вставки тестового пользователя
+-- мы можем добавить комментарий с инструкцией для добавления тестовых данных
+-- для текущего пользователя
+
+-- Для добавления тестовых данных для текущего пользователя, 
+-- выполните следующую команду в SQL редакторе Supabase:
+-- SELECT add_test_data_for_user(auth.uid());
