@@ -249,16 +249,6 @@ const Settings = () => {
                 </Form>
               </CardContent>
             </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Уведомления</CardTitle>
-                <CardDescription>Настройте предпочтения уведомлений</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Настройки уведомлений будут добавлены в ближайшее время.</p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
