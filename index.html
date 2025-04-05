@@ -16,10 +16,30 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Puzzle English Dictionary scripts and styles -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://puzzle-english.com/wp-content/themes/english/extensions/dictionary/js/jBox.css">
+    <link type="text/css" rel="stylesheet" href="https://puzzle-english.com/wp-content/themes/english/assets/css/balloon.css">
+    <script type="text/javascript" src="https://puzzle-english.com/wp-content/plugins/pe-balloon/jBox.min.js"></script>
+    <script type="text/javascript" src="https://puzzle-english.com/wp-content/plugins/pe-balloon/pe_balloon.min.js"></script>
   </head>
 
   <body>
     <div id="root"></div>
+    <!-- Puzzle English Dictionary initialization -->
+    <script>
+      $(function() {
+        PE_Balloon.init({
+          wrap_words: true, 
+          id_user: 1263499, 
+          our_helper: true,
+          balloon_video: true, 
+          balloon_phrases: true, 
+          balloon_form_words: true
+        });
+      });
+    </script>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
