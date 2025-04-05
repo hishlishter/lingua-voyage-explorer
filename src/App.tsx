@@ -11,7 +11,7 @@ import Dictionary from "./pages/Dictionary";
 import Tests from "./pages/Tests";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import TestDetail from "./pages/TestDetail";
 
 const queryClient = new QueryClient({
@@ -24,16 +24,13 @@ const queryClient = new QueryClient({
   },
 });
 
-// Модифицированный защищенный маршрут, который не показывает загрузку
+// Modified protected route that doesn't show loading
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Always render children without loading checks
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
-  
-  // Always skip loading screens
   return (
     <Routes>
       <Route path="/" element={<Index />} />
@@ -62,7 +59,7 @@ const AppRoutes = () => {
           <TestDetail />
         </ProtectedRoute>
       } />
-      <Route path="/auth" element={user ? <Navigate to="/" /> : <Auth />} />
+      <Route path="/auth" element={<Auth />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
