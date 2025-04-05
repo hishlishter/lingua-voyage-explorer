@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -131,41 +131,50 @@ const UserProfile = () => {
     }
   };
 
+  // Use base64 encoding for avatar instead of storage bucket
   const saveAvatar = async () => {
-    if (!avatarFile || !user) return;
+    if (!avatarFile || !user) {
+      toast.error('Файл не выбран');
+      return;
+    }
     
     try {
       setIsUploading(true);
-      const fileName = `avatar-${user.id}-${Date.now()}`;
       
-      const fileExt = avatarFile.name.split('.').pop();
-      const fileNameWithExt = `${fileName}.${fileExt}`;
+      // Convert file to base64 string
+      const reader = new FileReader();
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileNameWithExt, avatarFile, {
-          cacheControl: '3600',
-          upsert: true
-        });
+      reader.onload = async (event) => {
+        if (event.target && event.target.result) {
+          try {
+            // Get base64 string
+            const base64String = event.target.result.toString();
+            
+            // Use the base64 string as the avatar URL
+            await updateAvatarMutation.mutateAsync(base64String);
+            
+            setDialogOpen(false);
+          } catch (error) {
+            console.error('Error saving avatar:', error);
+            toast.error('Ошибка при сохранении аватара');
+          } finally {
+            setIsUploading(false);
+          }
+        }
+      };
       
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
+      reader.onerror = () => {
+        console.error('Error reading file');
+        toast.error('Ошибка при чтении файла');
+        setIsUploading(false);
+      };
       
-      const { data: publicUrlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileNameWithExt);
+      // Read file as data URL (base64)
+      reader.readAsDataURL(avatarFile);
       
-      const avatarUrl = publicUrlData.publicUrl;
-      
-      await updateAvatarMutation.mutateAsync(avatarUrl);
-      
-      setDialogOpen(false);
     } catch (error) {
-      toast.error('Ошибка при загрузке изображения');
-      console.error('Avatar upload error:', error);
-    } finally {
+      toast.error('Ошибка при обработке изображения');
+      console.error('Avatar processing error:', error);
       setIsUploading(false);
     }
   };
@@ -219,6 +228,9 @@ const UserProfile = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Изменить аватар</DialogTitle>
+            <DialogDescription>
+              Выберите изображение для вашего профиля
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex justify-center">
@@ -230,6 +242,9 @@ const UserProfile = () => {
             <div className="space-y-2">
               <Label htmlFor="avatar">Загрузить изображение</Label>
               <Input id="avatar" type="file" accept="image/*" onChange={handleAvatarChange} />
+              <p className="text-xs text-muted-foreground">
+                Рекомендуемый размер: 200x200 пикселей
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Отмена</Button>
