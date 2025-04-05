@@ -1,11 +1,10 @@
-
 import { supabase } from "./supabase";
 
 export interface Lesson {
   id: number;
   title: string;
   content: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
+  level: 'beginner' | 'intermediate' | 'advanced' | string;
   order_index: number;
   created_at?: string;
 }
@@ -15,6 +14,7 @@ export interface LessonTest {
   lesson_id: number;
   title: string;
   description?: string;
+  questions?: LessonQuestion[];
 }
 
 export interface LessonQuestion {
@@ -172,7 +172,12 @@ export const saveLessonTestResult = async (
   }
 };
 
-// Fetch user's progress for all lessons
+// Rename this function to fetchLessonProgress to allow both names to work
+export const fetchLessonProgress = async (userId: string): Promise<any[]> => {
+  return fetchUserLessonProgress(userId);
+};
+
+// Original function name - keep it for backward compatibility
 export const fetchUserLessonProgress = async (userId: string): Promise<any[]> => {
   try {
     const { data, error } = await supabase

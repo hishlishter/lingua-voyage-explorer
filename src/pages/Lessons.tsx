@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchLessons, fetchLessonProgress, Lesson, LessonProgress } from '@/lib/supabase-lessons';
+import { fetchLessons, fetchUserLessonProgress, Lesson } from '@/lib/supabase-lessons';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,18 @@ import { BookOpen, Clock, GraduationCap, Play, Languages, CheckCircle } from 'lu
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuth } from '@/context/AuthContext';
+
+// Define the LessonProgress type that was missing
+interface LessonProgress {
+  id: number;
+  user_id: string;
+  lesson_id: number;
+  score: number;
+  total_questions: number;
+  is_completed: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
 
 const LessonSkeleton = () => (
   <Card className="overflow-hidden">
@@ -101,10 +113,13 @@ const getLessonIconByLevel = (level: string | undefined) => {
   
   switch (level.toLowerCase()) {
     case 'начальный':
+    case 'beginner':
       return <Languages className="h-6 w-6" />;
     case 'средний':
+    case 'intermediate':
       return <BookOpen className="h-6 w-6" />;
     case 'продвинутый':
+    case 'advanced':
       return <GraduationCap className="h-6 w-6" />;
     default:
       return <Languages className="h-6 w-6" />;
@@ -116,18 +131,18 @@ const Lessons = () => {
   const { user } = useAuth();
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
   
-  // Получаем уроки из базы данных
+  // Get lessons from database
   const { data: lessons, isLoading: isLessonsLoading, error: lessonsError } = useQuery({
     queryKey: ['lessons'],
     queryFn: fetchLessons,
-    staleTime: 300000, // 5 минут кэширования
+    staleTime: 300000, // 5 minutes caching
   });
   
-  // Получаем прогресс пользователя по урокам
+  // Get user progress on lessons - use fetchUserLessonProgress instead of fetchLessonProgress
   const { data: lessonProgress, isLoading: isProgressLoading } = useQuery({
     queryKey: ['lesson-progress', user?.id],
-    queryFn: () => user?.id ? fetchLessonProgress(user.id) : Promise.resolve([]),
-    staleTime: 300000, // 5 минут кэширования
+    queryFn: () => user?.id ? fetchUserLessonProgress(user.id) : Promise.resolve([]),
+    staleTime: 300000, // 5 minutes caching
     enabled: !!user?.id,
   });
   
