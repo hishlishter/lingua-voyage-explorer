@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -12,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuth } from '@/context/AuthContext';
 
-// Define the LessonProgress type that was missing
 interface LessonProgress {
   id: number;
   user_id: string;
@@ -47,7 +45,6 @@ const LessonSkeleton = () => (
   </Card>
 );
 
-// Демо уроки с правильными названиями грамматических времен
 const demoLessons = [
   {
     id: 1,
@@ -60,17 +57,9 @@ const demoLessons = [
   {
     id: 2,
     title: 'Present Continuous (Настоящее длительное время)',
-    description: 'Познакомьтесь с временем Present Continuous, его формированием и случаями употребления. Научитесь отличать его от Present Simple и правильно использовать в речи.',
+    description: 'Познакомьтесь с временем Present Continuous, его формированием и случаями употребления. Научитесь о��личать его от Present Simple и правильно использовать в речи.',
     level: 'beginner',
     icon: <Languages className="h-6 w-6" />,
-    completed: false
-  },
-  {
-    id: 3,
-    title: 'Past Simple (Простое прошедшее время)',
-    description: 'Изучите образование и использование времени Past Simple. Разберетесь с правильными и неправильными глаголами, научитесь рассказывать о прошедших событиях.',
-    level: 'beginner',
-    icon: <BookOpen className="h-6 w-6" />,
     completed: false
   },
   {
@@ -91,25 +80,20 @@ const demoLessons = [
   }
 ];
 
-// Функция для получения краткого описания из содержания урока
 const extractDescriptionFromContent = (content: string): string => {
-  // Извлекаем первый параграф из HTML или первые 150 символов
   const match = content.match(/<p>(.*?)<\/p>/);
   if (match && match[1]) {
-    // Удаляем HTML-теги
     const text = match[1].replace(/<[^>]*>/g, '');
     return text.length > 150 ? text.substring(0, 147) + '...' : text;
   }
   
-  // Если первый параграф не найден, используем первые 150 символов текста без HTML
   const textOnly = content.replace(/<[^>]*>/g, '');
   return textOnly.length > 150 ? textOnly.substring(0, 147) + '...' : textOnly;
 };
 
 const getLessonIconByLevel = (level: string | undefined) => {
-  // Add a null check to handle undefined level
   if (!level) {
-    return <Languages className="h-6 w-6" />; // Default icon if level is undefined
+    return <Languages className="h-6 w-6" />;
   }
   
   switch (level.toLowerCase()) {
@@ -132,24 +116,20 @@ const Lessons = () => {
   const { user } = useAuth();
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
   
-  // Get lessons from database
   const { data: lessons, isLoading: isLessonsLoading, error: lessonsError } = useQuery({
     queryKey: ['lessons'],
     queryFn: fetchLessons,
-    staleTime: 300000, // 5 minutes caching
+    staleTime: 300000,
   });
   
-  // Get user progress on lessons
   const { data: lessonProgress, isLoading: isProgressLoading } = useQuery({
     queryKey: ['lesson-progress', user?.id],
     queryFn: () => user?.id ? fetchUserLessonProgress(user.id) : Promise.resolve([]),
-    staleTime: 300000, // 5 minutes caching
+    staleTime: 300000,
     enabled: !!user?.id,
   });
   
-  // Загружаем уроки, отмеченные как пройденные
   useEffect(() => {
-    // Если пользователь авторизован, используем данные из базы
     if (user?.id && lessonProgress) {
       const completedLessonIds = lessonProgress
         .filter(progress => progress.is_completed)
@@ -157,7 +137,6 @@ const Lessons = () => {
       
       setCompletedLessons(completedLessonIds);
     } else {
-      // Иначе используем данные из localStorage
       const storedCompletedLessons = localStorage.getItem('completedLessons');
       if (storedCompletedLessons) {
         try {
@@ -176,7 +155,6 @@ const Lessons = () => {
     });
   };
   
-  // Определяем, какие уроки показывать
   const isLoading = isLessonsLoading || (user?.id && isProgressLoading);
   const lessonsToShow = !isLoading && lessons && lessons.length > 0
     ? lessons.map(lesson => ({
@@ -213,12 +191,10 @@ const Lessons = () => {
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {isLoading ? (
-                      // Показываем скелетоны при загрузке
                       Array(3).fill(0).map((_, index) => (
                         <LessonSkeleton key={index} />
                       ))
                     ) : (
-                      // Показываем уроки
                       lessonsToShow.map((lesson) => (
                         <Card key={lesson.id} className="overflow-hidden hover:shadow-md transition-shadow">
                           <CardContent className="p-0">
