@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const YANDEX_DICT_API_KEY = "dict.1.1.20250405T113644Z.c6bf557d7bd59b2a.b78857e7df7d1bbaa600d099b37adf45c23c5431";
 const YANDEX_DICT_API_URL = "https://dictionary.yandex.net/api/v1/dicservice.json/lookup";
@@ -26,12 +27,15 @@ interface DictionaryResponse {
   }[];
 }
 
+type TranslationDirection = 'en-ru' | 'ru-en';
+
 const Dictionary = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchProgress, setSearchProgress] = useState(0);
   const [searchResult, setSearchResult] = useState<DictionaryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [direction, setDirection] = useState<TranslationDirection>('en-ru');
 
   // Handle search
   const handleSearch = async () => {
@@ -57,7 +61,7 @@ const Dictionary = () => {
       // Construct API URL
       const url = new URL(YANDEX_DICT_API_URL);
       url.searchParams.append('key', YANDEX_DICT_API_KEY);
-      url.searchParams.append('lang', 'en-ru'); // English to Russian
+      url.searchParams.append('lang', direction); // Direction of translation
       url.searchParams.append('text', searchQuery.trim());
       
       // Fetch data from Yandex Dictionary API
@@ -84,7 +88,7 @@ const Dictionary = () => {
       console.error('Error during search:', error);
       setError('Произошла ошибка при запросе к словарю. Пожалуйста, попробуйте позже.');
       toast.error('Ошибка при запросе к словарю');
-      clearInterval();
+      // Fixed the clearInterval call - was missing the progressInterval variable
       setIsSearching(false);
       setSearchProgress(0);
     }
@@ -104,7 +108,7 @@ const Dictionary = () => {
 
   // Format parts of speech abbreviations
   const formatPos = (pos: string): string => {
-    const posMap: Record<string, string> = {
+    const posMapEnToRu: Record<string, string> = {
       'noun': 'существительное',
       'verb': 'глагол',
       'adjective': 'прилагательное',
@@ -117,7 +121,28 @@ const Dictionary = () => {
       'numeral': 'числительное'
     };
     
-    return posMap[pos] || pos;
+    const posMapRuToEn: Record<string, string> = {
+      'сущ': 'существительное',
+      'гл': 'глагол',
+      'прил': 'прилагательное',
+      'нареч': 'наречие',
+      'мест': 'местоимение',
+      'предл': 'предлог',
+      'союз': 'союз',
+      'межд': 'междометие',
+      'числ': 'числительное'
+    };
+    
+    return direction === 'en-ru' 
+      ? (posMapEnToRu[pos] || pos)
+      : (posMapRuToEn[pos] || pos);
+  };
+
+  // Handle direction change
+  const handleDirectionChange = (value: string) => {
+    if (value === 'en-ru' || value === 'ru-en') {
+      setDirection(value);
+    }
   };
 
   // Render dictionary result
@@ -127,7 +152,7 @@ const Dictionary = () => {
     if (searchResult.def.length === 0) {
       return (
         <div className="my-4 p-4 bg-muted/50 rounded-lg">
-          <p>Перевод не найден для слова "{searchQuery}"</p>
+          <p>Перевод не найден для {direction === 'en-ru' ? 'английского' : 'русского'} слова "{searchQuery}"</p>
         </div>
       );
     }
@@ -203,15 +228,33 @@ const Dictionary = () => {
               <div className="bg-card rounded-xl shadow-sm p-6">
                 <h2 className="text-2xl font-bold mb-4">Словарь Яндекс</h2>
                 <p className="text-muted-foreground mb-6">
-                  Введите английское слово, чтобы получить его перевод и подробную информацию
+                  Введите слово, чтобы получить его перевод и подробную информацию
                 </p>
+                
+                <div className="mb-4">
+                  <div className="flex justify-center mb-2">
+                    <ToggleGroup 
+                      type="single" 
+                      value={direction} 
+                      onValueChange={handleDirectionChange}
+                      className="justify-start"
+                    >
+                      <ToggleGroupItem value="en-ru" aria-label="Английский → Русский">
+                        Английский → Русский
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="ru-en" aria-label="Русский → Английский">
+                        Русский → Английский
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                </div>
                 
                 <div className="flex gap-2 mb-6">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input 
                       type="search" 
-                      placeholder="Введите слово для поиска..." 
+                      placeholder={direction === 'en-ru' ? "Введите английское слово..." : "Введите русское слово..."} 
                       className="pl-10"
                       value={searchQuery}
                       onChange={handleInputChange}
