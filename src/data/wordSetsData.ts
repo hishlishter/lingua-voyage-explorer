@@ -41,5 +41,23 @@ export const wordSetsData: WordSetData[] = [
       { id: '4', word: 'It\'s midday', translation: 'Полдень' },
       { id: '5', word: 'It\'s midnight', translation: 'Полночь' },
     ]
+  },
+  {
+    id: 'phrasal-verbs',
+    title: 'Фразовые глаголы',
+    icon: '🔤',
+    gradientClass: 'card-gradient-green',
+    words: [
+      { id: '1', word: 'give up', translation: 'сдаваться, бросать (привычку)' },
+      { id: '2', word: 'look after', translation: 'заботиться, присматривать' },
+      { id: '3', word: 'run into', translation: 'случайно встретить, натолкнуться' },
+      { id: '4', word: 'put off', translation: 'откладывать, отсрочивать' },
+      { id: '5', word: 'take after', translation: 'быть похожим на кого-то' },
+      { id: '6', word: 'get along', translation: 'ладить, хорошо общаться' },
+      { id: '7', word: 'look up', translation: 'искать информацию' },
+      { id: '8', word: 'figure out', translation: 'понять, разобраться' },
+      { id: '9', word: 'turn down', translation: 'отказаться, отклонить' },
+      { id: '10', word: 'bring up', translation: 'воспитывать, упоминать тему' },
+    ]
   }
 ];

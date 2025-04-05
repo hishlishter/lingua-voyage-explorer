@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Input } from '@/components/ui/input';
@@ -19,55 +19,10 @@ interface DictionaryWord {
 
 const Dictionary = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [dictionaryWords, setDictionaryWords] = useState<DictionaryWord[]>([]);
-  const [filteredWords, setFilteredWords] = useState<DictionaryWord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<DictionaryWord[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchProgress, setSearchProgress] = useState(0);
-
-  // Initial dictionary data
-  useEffect(() => {
-    // This would normally fetch from an API, but we'll use static data for now
-    const fetchDictionary = async () => {
-      try {
-        setIsLoading(true);
-        // Simulating API call with timeout
-        setTimeout(() => {
-          const words: DictionaryWord[] = [
-            { id: '1', word: 'привет', translation: 'hello / hi' },
-            { id: '2', word: 'спасибо', translation: 'thank you' },
-            { id: '3', word: 'пожалуйста', translation: 'please / you\'re welcome' },
-            { id: '4', word: 'да', translation: 'yes' },
-            { id: '5', word: 'нет', translation: 'no' },
-            { id: '6', word: 'извините', translation: 'sorry / excuse me' },
-            { id: '7', word: 'хорошо', translation: 'good / well / okay' },
-            { id: '8', word: 'плохо', translation: 'bad / poorly' },
-            { id: '9', word: 'время', translation: 'time' },
-            { id: '10', word: 'день', translation: 'day' },
-            { id: '11', word: 'ночь', translation: 'night' },
-            { id: '12', word: 'утро', translation: 'morning' },
-            { id: '13', word: 'вечер', translation: 'evening' },
-            { id: '14', word: 'дом', translation: 'house / home' },
-            { id: '15', word: 'школа', translation: 'school' },
-            { id: '16', word: 'работа', translation: 'work / job' },
-            { id: '17', word: 'семья', translation: 'family' },
-            { id: '18', word: 'друг', translation: 'friend' },
-            { id: '19', word: 'книга', translation: 'book' },
-            { id: '20', word: 'еда', translation: 'food' },
-          ];
-          setDictionaryWords(words);
-          setFilteredWords(words);
-          setIsLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error('Error fetching dictionary:', error);
-        toast.error('Ошибка при загрузке словаря');
-        setIsLoading(false);
-      }
-    };
-
-    fetchDictionary();
-  }, []);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Simulate searching on external dictionary API (Linguee)
   const searchLinguee = async (query: string) => {
@@ -163,46 +118,25 @@ const Dictionary = () => {
   // Handle search
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      setFilteredWords(dictionaryWords);
+      setSearchResults([]);
+      setHasSearched(false);
       return;
     }
 
     const query = searchQuery.toLowerCase().trim();
+    setHasSearched(true);
     
-    // First search in local dictionary
-    const localResults = dictionaryWords.filter(
-      word => 
-        word.word.toLowerCase().includes(query) || 
-        word.translation.toLowerCase().includes(query)
-    );
-    
-    // Then search in Linguee
+    // Search in Linguee
     const lingueeResults = await searchLinguee(query);
-    
-    // Combine results
-    const combinedResults = [...localResults];
-    
-    // Add only linguee results that don't already exist in local results
-    lingueeResults.forEach(lingueeWord => {
-      const exists = localResults.some(
-        localWord => 
-          localWord.word.toLowerCase() === lingueeWord.word.toLowerCase() && 
-          localWord.translation.toLowerCase() === lingueeWord.translation.toLowerCase()
-      );
-      
-      if (!exists) {
-        combinedResults.push(lingueeWord);
-      }
-    });
-    
-    setFilteredWords(combinedResults);
+    setSearchResults(lingueeResults);
   };
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     if (e.target.value === '') {
-      setFilteredWords(dictionaryWords);
+      setSearchResults([]);
+      setHasSearched(false);
     }
   };
 
@@ -255,20 +189,9 @@ const Dictionary = () => {
                   </div>
                 )}
                 
-                {isLoading ? (
-                  <div className="space-y-3">
-                    {Array(5).fill(0).map((_, index) => (
-                      <div key={index} className="flex justify-between items-center p-4 border rounded-lg">
-                        <div>
-                          <Skeleton className="h-5 w-24 mb-2" />
-                          <Skeleton className="h-4 w-40" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : filteredWords.length > 0 ? (
+                {searchResults.length > 0 ? (
                   <div className="border rounded-lg divide-y">
-                    {filteredWords.map((word) => (
+                    {searchResults.map((word) => (
                       <div key={word.id} className="p-4 flex justify-between items-center hover:bg-accent/5">
                         <div>
                           <h3 className="font-medium">{word.word}</h3>
@@ -282,12 +205,19 @@ const Dictionary = () => {
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : hasSearched ? (
                   <div className="text-center py-10">
                     <p className="text-muted-foreground">Ничего не найдено</p>
-                    <Button variant="link" onClick={() => setFilteredWords(dictionaryWords)}>
+                    <Button variant="link" onClick={() => {
+                      setSearchQuery('');
+                      setHasSearched(false);
+                    }}>
                       Сбросить поиск
                     </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-muted-foreground">Введите слово для поиска</p>
                   </div>
                 )}
               </div>

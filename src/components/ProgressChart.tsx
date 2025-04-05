@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="font-semibold">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }}>
-            {entry.name === 'tests' ? 'Тесты' : 'Уроки'}: {entry.value.toFixed(1)}
+            {entry.name === 'tests' ? 'Тесты' : 'Уроки'}: {entry.value}
           </p>
         ))}
       </div>
@@ -74,8 +74,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
           .select('*')
           .eq('user_id', user.id)
           .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString())
-          .order('created_at');
+          .lte('created_at', endDate.toISOString());
         
         if (error) {
           console.error('Error fetching test results:', error);
@@ -111,8 +110,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
           .select('*')
           .eq('user_id', user.id)
           .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString())
-          .order('created_at');
+          .lte('created_at', endDate.toISOString());
         
         if (error) {
           console.error('Error fetching lesson progress:', error);
@@ -148,8 +146,8 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     const currentYear = new Date().getFullYear();
     
     // Создаем структуру для хранения результатов по месяцам
-    const monthlyTestScores: Record<number, number[]> = {};
-    const monthlyLessonScores: Record<number, number[]> = {};
+    const monthlyTestScores: Record<number, number> = {};
+    const monthlyLessonScores: Record<number, number> = {};
     
     // Заполняем данные о результатах тестов по месяцам
     if (testResults && testResults.length > 0) {
@@ -158,12 +156,11 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
         const month = date.getMonth();
         
         if (!monthlyTestScores[month]) {
-          monthlyTestScores[month] = [];
+          monthlyTestScores[month] = 0;
         }
         
-        // Вычисляем процент правильных ответов
-        const scorePercent = (result.score / result.total_questions) * 10;
-        monthlyTestScores[month].push(scorePercent);
+        // Считаем количество пройденных тестов
+        monthlyTestScores[month] += 1;
       });
     }
     
@@ -174,29 +171,23 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
         const month = date.getMonth();
         
         if (!monthlyLessonScores[month]) {
-          monthlyLessonScores[month] = [];
+          monthlyLessonScores[month] = 0;
         }
         
-        // Каждый пройденный урок добавляет 1 балл
-        monthlyLessonScores[month].push(1);
+        // Каждый пройденный урок добавляет 1
+        monthlyLessonScores[month] += 1;
       });
     }
     
     // Преобразуем данные в формат для графика
     const data = monthNames.map((name, index) => {
-      const testScores = monthlyTestScores[index] || [];
-      const lessonScores = monthlyLessonScores[index] || [];
-      
-      const avgTestScore = testScores.length > 0 
-        ? testScores.reduce((sum, score) => sum + score, 0) / testScores.length 
-        : 0;
-        
-      const totalLessons = lessonScores.length;
+      const testCount = monthlyTestScores[index] || 0;
+      const lessonCount = monthlyLessonScores[index] || 0;
       
       return {
         name,
-        tests: avgTestScore,
-        lessons: totalLessons > 10 ? 10 : totalLessons, // Масштабируем до 10 для визуализации
+        tests: testCount,
+        lessons: lessonCount,
         isCurrentMonth: index === currentMonth && year === currentYear
       };
     });
@@ -298,7 +289,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                           fontSize="12" 
                           fontWeight="bold"
                         >
-                          {payload.tests.toFixed(1)}
+                          {payload.tests}
                         </text>
                       </g>
                     );
@@ -339,7 +330,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                           fontSize="12" 
                           fontWeight="bold"
                         >
-                          {payload.lessons.toFixed(0)}
+                          {payload.lessons}
                         </text>
                       </g>
                     );

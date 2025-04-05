@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCourses, fetchCourseProgress } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, BookOpen, CheckCircle } from 'lucide-react';
+import { Award, BookOpen } from 'lucide-react';
 
 interface DashboardProps {
   profile: Profile;
