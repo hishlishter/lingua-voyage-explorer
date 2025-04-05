@@ -10,9 +10,31 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { BookOpen, ChevronDown, ChevronUp, FileText, Check, ArrowLeft, Loader2 } from 'lucide-react';
-import { fetchCourseWithLessons, fetchCourseProgress, updateCourseProgress, Course, Lesson } from '@/lib/supabase';
+import { 
+  BookOpen, 
+  ChevronDown, 
+  ChevronUp, 
+  FileText, 
+  Check, 
+  ArrowLeft, 
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Edit3 
+} from 'lucide-react';
+import { 
+  fetchCourseWithLessons, 
+  fetchCourseProgress, 
+  updateCourseProgress, 
+  fetchPracticeTestForLesson, 
+  savePracticeTestResult, 
+  Course, 
+  Lesson, 
+  PracticeTest, 
+  PracticeQuestion 
+} from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import TestResult from '@/components/TestResult';
 
 const CourseDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +43,14 @@ const CourseDetail = () => {
   const { toast } = useToast();
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [openLessonId, setOpenLessonId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('theory');
+  
+  // State for practice tests
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [isTestSubmitted, setIsTestSubmitted] = useState(false);
+  const [testScore, setTestScore] = useState(0);
+  const [showTestResult, setShowTestResult] = useState(false);
 
   // Загрузка курса с уроками
   const { data: course, isLoading: isLoadingCourse } = useQuery({
@@ -39,6 +69,10 @@ const CourseDetail = () => {
   // Обработчик выбора урока
   const handleSelectLesson = (lesson: Lesson) => {
     setSelectedLessonId(lesson.id);
+    setActiveTab('theory');
+    setIsTestSubmitted(false);
+    setSelectedAnswers({});
+    setCurrentQuestionIndex(0);
     
     // Автоматическое открытие выбранного урока в аккордеоне
     setOpenLessonId(lesson.id);
@@ -78,6 +112,16 @@ const CourseDetail = () => {
     ? course.lessons.find(lesson => lesson.id === selectedLessonId)
     : null;
   
+  // Получаем практический тест для текущего урока
+  const currentPracticeTest = currentLesson?.practice_tests?.length 
+    ? currentLesson.practice_tests[0] 
+    : null;
+  
+  // Получаем текущий вопрос практического теста
+  const currentQuestion = currentPracticeTest?.questions?.length && currentQuestionIndex < currentPracticeTest.questions.length
+    ? currentPracticeTest.questions[currentQuestionIndex]
+    : null;
+
   // Выбираем первый урок по умолчанию или последний просмотренный
   React.useEffect(() => {
     if (course?.lessons && course.lessons.length > 0 && !selectedLessonId) {
@@ -90,6 +134,70 @@ const CourseDetail = () => {
       }
     }
   }, [course, progress, selectedLessonId]);
+
+  // Обработчик выбора ответа в тесте
+  const handleAnswerSelect = (questionId: string, optionId: string) => {
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+  };
+
+  // Переход к следующему вопросу
+  const handleNextQuestion = () => {
+    if (currentPracticeTest?.questions && currentQuestionIndex < currentPracticeTest.questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    }
+  };
+
+  // Переход к предыдущему вопросу
+  const handlePrevQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+
+  // Завершение теста и подсчет результатов
+  const handleSubmitTest = () => {
+    if (!currentPracticeTest || !currentPracticeTest.questions) return;
+    
+    let score = 0;
+    currentPracticeTest.questions.forEach(question => {
+      const selectedOptionId = selectedAnswers[question.id];
+      if (selectedOptionId) {
+        const correctOption = question.options?.find(option => option.is_correct);
+        if (correctOption && correctOption.id === selectedOptionId) {
+          score++;
+        }
+      }
+    });
+    
+    setTestScore(score);
+    setIsTestSubmitted(true);
+    setShowTestResult(true);
+    
+    // Сохраняем результаты теста, если пользователь авторизован
+    if (user?.id && currentPracticeTest.id) {
+      savePracticeTestResult(
+        user.id, 
+        currentPracticeTest.id, 
+        score, 
+        currentPracticeTest.questions.length
+      );
+    }
+  };
+
+  // Сбросить тест для повторного прохождения
+  const handleResetTest = () => {
+    setCurrentQuestionIndex(0);
+    setSelectedAnswers({});
+    setIsTestSubmitted(false);
+  };
+
+  // Закрыть окно с результатами теста
+  const handleCloseTestResult = () => {
+    setShowTestResult(false);
+  };
 
   // Отображение загрузки
   if (isLoadingCourse) {
@@ -139,6 +247,58 @@ const CourseDetail = () => {
       </div>
     );
   }
+
+  // Рендеринг вопроса практического теста
+  const renderPracticeQuestion = (question: PracticeQuestion) => {
+    if (!question || !question.options) return null;
+    
+    const selectedOptionId = selectedAnswers[question.id];
+    const isAnswered = !!selectedOptionId;
+    
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">{question.text}</h3>
+        <div className="space-y-2">
+          {question.options.map(option => {
+            const isSelected = selectedOptionId === option.id;
+            const isCorrect = option.is_correct;
+            let optionClass = "p-4 border rounded-md cursor-pointer hover:bg-gray-50";
+            
+            if (isTestSubmitted) {
+              if (isCorrect) {
+                optionClass = "p-4 border rounded-md bg-green-50 border-green-200";
+              } else if (isSelected && !isCorrect) {
+                optionClass = "p-4 border rounded-md bg-red-50 border-red-200";
+              }
+            } else if (isSelected) {
+              optionClass = "p-4 border rounded-md bg-primary/10 border-primary";
+            }
+            
+            return (
+              <div 
+                key={option.id}
+                className={optionClass}
+                onClick={() => !isTestSubmitted && handleAnswerSelect(question.id, option.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div>{option.text}</div>
+                  {isTestSubmitted && (
+                    <div>
+                      {isCorrect ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      ) : (isSelected && !isCorrect ? (
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      ) : null)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -211,7 +371,9 @@ const CourseDetail = () => {
                             </CollapsibleTrigger>
                             <CollapsibleContent className="p-3 pt-0 border-t">
                               <div className="text-sm text-muted-foreground mb-3">
-                                Краткий обзор содержания урока.
+                                {lesson.practice_tests?.length 
+                                  ? "Включает теорию и практические задания." 
+                                  : "Содержит только теоретический материал."}
                               </div>
                               <Button 
                                 size="sm" 
@@ -243,19 +405,87 @@ const CourseDetail = () => {
                         Выберите урок из списка слева
                       </div>
                     ) : (
-                      <Tabs defaultValue="theory" className="w-full">
+                      <Tabs 
+                        defaultValue="theory" 
+                        value={activeTab} 
+                        onValueChange={setActiveTab}
+                        className="w-full"
+                      >
                         <TabsList className="mb-4">
                           <TabsTrigger value="theory">Теория</TabsTrigger>
-                          <TabsTrigger value="practice">Практика</TabsTrigger>
+                          <TabsTrigger 
+                            value="practice"
+                            disabled={!currentLesson.practice_tests?.length}
+                          >
+                            Практика
+                          </TabsTrigger>
                         </TabsList>
                         <TabsContent value="theory">
                           <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: currentLesson.content }} />
                         </TabsContent>
                         <TabsContent value="practice">
-                          <div className="text-center text-muted-foreground p-8">
-                            <p className="mb-4">Практические задания будут добавлены в ближайшее время.</p>
-                            <Button disabled variant="outline">Пройти тест</Button>
-                          </div>
+                          {!currentPracticeTest ? (
+                            <div className="text-center text-muted-foreground p-8">
+                              <p className="mb-4">Практические задания для этого урока отсутствуют.</p>
+                            </div>
+                          ) : !currentQuestion ? (
+                            <div className="text-center text-muted-foreground p-8">
+                              <p className="mb-4">Нет доступных вопросов для этого теста.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-6">
+                              <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold">{currentPracticeTest.title}</h3>
+                                <div className="text-sm text-muted-foreground">
+                                  Вопрос {currentQuestionIndex + 1} из {currentPracticeTest.questions?.length || 0}
+                                </div>
+                              </div>
+                              
+                              {renderPracticeQuestion(currentQuestion)}
+                              
+                              <div className="flex justify-between mt-6 pt-4 border-t">
+                                <Button
+                                  variant="outline"
+                                  onClick={handlePrevQuestion}
+                                  disabled={currentQuestionIndex === 0 || isTestSubmitted}
+                                >
+                                  Предыдущий
+                                </Button>
+                                
+                                <div className="space-x-2">
+                                  {isTestSubmitted ? (
+                                    <Button 
+                                      onClick={handleResetTest}
+                                      variant="outline"
+                                    >
+                                      <Edit3 className="h-4 w-4 mr-2" />
+                                      Пройти снова
+                                    </Button>
+                                  ) : (
+                                    <>
+                                      {currentQuestionIndex < (currentPracticeTest.questions?.length || 0) - 1 ? (
+                                        <Button 
+                                          onClick={handleNextQuestion}
+                                          disabled={!selectedAnswers[currentQuestion.id]}
+                                        >
+                                          Следующий
+                                        </Button>
+                                      ) : (
+                                        <Button 
+                                          onClick={handleSubmitTest}
+                                          disabled={!Object.keys(selectedAnswers).length || 
+                                            Object.keys(selectedAnswers).length < (currentPracticeTest.questions?.length || 0)}
+                                          className="bg-green-600 hover:bg-green-700"
+                                        >
+                                          Завершить тест
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </TabsContent>
                       </Tabs>
                     )}
@@ -263,6 +493,17 @@ const CourseDetail = () => {
                 </Card>
               </div>
             </div>
+            
+            {/* Диалог с результатами теста */}
+            {currentPracticeTest && (
+              <TestResult
+                open={showTestResult}
+                onClose={handleCloseTestResult}
+                score={testScore}
+                totalQuestions={currentPracticeTest.questions?.length || 0}
+                testTitle={currentPracticeTest.title}
+              />
+            )}
           </div>
         </main>
       </div>

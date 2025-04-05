@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Default development values (these will be used if no env variables are set)
@@ -123,7 +122,7 @@ export type Test = {
   questions_count: number;
   time_limit: number;
   created_at?: string;
-  questions?: Question[]; // Add the questions array to fix TypeScript errors
+  questions?: Question[];
 };
 
 export type Question = {
@@ -132,7 +131,7 @@ export type Question = {
   text: string;
   order_num: number;
   created_at?: string;
-  options?: Option[]; // Add the options array for convenience
+  options?: Option[];
 };
 
 export type Option = {
@@ -161,6 +160,7 @@ export type Lesson = {
   content: string;
   order_number: number;
   created_at?: string;
+  practice_tests?: PracticeTest[];
 };
 
 export type CourseProgress = {
@@ -174,7 +174,41 @@ export type CourseProgress = {
   updated_at?: string;
 };
 
-// Function to check if authentication is working
+export type PracticeTest = {
+  id: string;
+  lesson_id: string;
+  title: string;
+  description: string;
+  created_at?: string;
+  questions?: PracticeQuestion[];
+};
+
+export type PracticeQuestion = {
+  id: string;
+  practice_test_id: string;
+  text: string;
+  order_num: number;
+  created_at?: string;
+  options?: PracticeOption[];
+};
+
+export type PracticeOption = {
+  id: string;
+  practice_question_id: string;
+  text: string;
+  is_correct: boolean;
+  created_at?: string;
+};
+
+export type PracticeResult = {
+  id: string;
+  user_id: string;
+  practice_test_id: string;
+  score: number;
+  total_questions: number;
+  created_at?: string;
+};
+
 export const checkAuth = async () => {
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -190,7 +224,6 @@ export const checkAuth = async () => {
   }
 };
 
-// Функция для загрузки тестов
 export const fetchTests = async (): Promise<Test[]> => {
   try {
     console.log('Загрузка списка тестов...');
@@ -213,7 +246,6 @@ export const fetchTests = async (): Promise<Test[]> => {
   }
 };
 
-// Функция для загрузки теста с вопросами и вариантами ответов
 export const fetchTestWithQuestions = async (testId: string): Promise<Test | null> => {
   try {
     console.log(`Загрузка теста с ID ${testId} с вопросами и вариантами ответов...`);
@@ -243,12 +275,10 @@ export const fetchTestWithQuestions = async (testId: string): Promise<Test | nul
   }
 };
 
-// Функция для сохранения результатов теста
 export const saveTestResult = async (userId: string, testId: string, score: number, totalQuestions: number): Promise<boolean> => {
   try {
     console.log(`Сохранение результатов теста: пользователь=${userId}, тест=${testId}, баллы=${score}/${totalQuestions}`);
     
-    // Сохраняем результат теста
     const { error: resultError } = await supabase
       .from('test_results')
       .insert([{
@@ -263,7 +293,6 @@ export const saveTestResult = async (userId: string, testId: string, score: numb
       throw resultError;
     }
     
-    // Обновляем счетчик пройденных тестов в профиле
     const { data: profileData } = await supabase
       .from('profiles')
       .select('tests_completed')
@@ -290,7 +319,6 @@ export const saveTestResult = async (userId: string, testId: string, score: numb
   }
 };
 
-// Функция для загрузки результатов тестов пользователя
 export const fetchTestResults = async (userId: string): Promise<any[]> => {
   try {
     console.log(`Загрузка результатов тестов для пользователя ${userId}...`);
@@ -317,7 +345,6 @@ export const fetchTestResults = async (userId: string): Promise<any[]> => {
   }
 };
 
-// Функция для загрузки курсов
 export const fetchCourses = async (): Promise<Course[]> => {
   try {
     console.log('Загрузка списка курсов...');
@@ -340,7 +367,6 @@ export const fetchCourses = async (): Promise<Course[]> => {
   }
 };
 
-// Функция для загрузки курса с уроками
 export const fetchCourseWithLessons = async (courseId: string): Promise<Course | null> => {
   try {
     console.log(`Загрузка курса с ID ${courseId} с уроками...`);
@@ -349,7 +375,16 @@ export const fetchCourseWithLessons = async (courseId: string): Promise<Course |
       .from('courses')
       .select(`
         *,
-        lessons:lessons(*)
+        lessons:lessons(
+          *,
+          practice_tests:practice_tests(
+            *,
+            questions:practice_questions(
+              *,
+              options:practice_options(*)
+            )
+          )
+        )
       `)
       .eq('id', courseId)
       .single();
@@ -359,9 +394,18 @@ export const fetchCourseWithLessons = async (courseId: string): Promise<Course |
       throw error;
     }
     
-    // Сортируем уроки по порядку
     if (data && data.lessons) {
       data.lessons.sort((a, b) => a.order_number - b.order_number);
+      
+      data.lessons.forEach(lesson => {
+        if (lesson.practice_tests) {
+          lesson.practice_tests.forEach(test => {
+            if (test.questions) {
+              test.questions.sort((a, b) => a.order_num - b.order_num);
+            }
+          });
+        }
+      });
     }
     
     console.log('Успешно загружен курс с уроками:', data?.id);
@@ -372,7 +416,6 @@ export const fetchCourseWithLessons = async (courseId: string): Promise<Course |
   }
 };
 
-// Функция для обновления прогресса по курсу
 export const updateCourseProgress = async (
   userId: string, 
   courseId: string, 
@@ -383,7 +426,6 @@ export const updateCourseProgress = async (
   try {
     console.log(`Обновление прогресса курса: пользователь=${userId}, курс=${courseId}, урок=${lessonId}`);
     
-    // Проверяем, есть ли уже запись о прогрессе
     const { data: existingProgress } = await supabase
       .from('course_progress')
       .select('id')
@@ -394,7 +436,6 @@ export const updateCourseProgress = async (
     let result;
     
     if (existingProgress) {
-      // Обновляем существующий прогресс
       result = await supabase
         .from('course_progress')
         .update({
@@ -405,7 +446,6 @@ export const updateCourseProgress = async (
         })
         .eq('id', existingProgress.id);
     } else {
-      // Создаем новую запись о прогрессе
       result = await supabase
         .from('course_progress')
         .insert([{
@@ -424,7 +464,6 @@ export const updateCourseProgress = async (
       return false;
     }
     
-    // Если курс завершен, обновляем счетчик пройденных курсов в профиле
     if (isCompleted) {
       const { data: profileData } = await supabase
         .from('profiles')
@@ -448,7 +487,6 @@ export const updateCourseProgress = async (
   }
 };
 
-// Функция для получения прогресса пользователя по курсу
 export const fetchCourseProgress = async (userId: string, courseId: string): Promise<CourseProgress | null> => {
   try {
     console.log(`Загрузка прогресса курса: пользователь=${userId}, курс=${courseId}`);
@@ -473,3 +511,66 @@ export const fetchCourseProgress = async (userId: string, courseId: string): Pro
   }
 };
 
+export const fetchPracticeTestForLesson = async (lessonId: string): Promise<PracticeTest | null> => {
+  try {
+    console.log(`Загрузка практического теста для урока ${lessonId}...`);
+    
+    const { data, error } = await supabase
+      .from('practice_tests')
+      .select(`
+        *,
+        questions:practice_questions(
+          *,
+          options:practice_options(*)
+        )
+      `)
+      .eq('lesson_id', lessonId)
+      .single();
+    
+    if (error) {
+      console.error('Ошибка загрузки практического теста:', error);
+      return null;
+    }
+    
+    if (data && data.questions) {
+      data.questions.sort((a, b) => a.order_num - b.order_num);
+    }
+    
+    console.log('Успешно загружен практический тест:', data?.id);
+    return data;
+  } catch (err) {
+    console.error('Непредвиденная ошибка при загрузке практического теста:', err);
+    return null;
+  }
+};
+
+export const savePracticeTestResult = async (
+  userId: string, 
+  practiceTestId: string, 
+  score: number, 
+  totalQuestions: number
+): Promise<boolean> => {
+  try {
+    console.log(`Сохранение результатов практического теста: пользователь=${userId}, тест=${practiceTestId}, баллы=${score}/${totalQuestions}`);
+    
+    const { error } = await supabase
+      .from('practice_results')
+      .insert([{
+        user_id: userId,
+        practice_test_id: practiceTestId,
+        score: score,
+        total_questions: totalQuestions
+      }]);
+    
+    if (error) {
+      console.error('Ошибка сохранения результатов практического теста:', error);
+      return false;
+    }
+    
+    console.log('Результаты практического теста успешно сохранены');
+    return true;
+  } catch (err) {
+    console.error('Непредвиденная ошибка при сохранении результатов практического теста:', err);
+    return false;
+  }
+};
