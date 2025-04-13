@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -37,7 +36,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// Создаем пустые данные для графика
 const generateEmptyData = () => {
   const monthNames = [
     'Янв', 'Фев', 'Март', 'Апр', 'Май', 'Июнь',
@@ -59,7 +57,6 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
   const [year, setYear] = useState(initialYear);
   const { user } = useAuth();
   
-  // Получаем данные о результатах тестов пользователя
   const { data: testResults, isLoading: isLoadingTests } = useQuery({
     queryKey: ['test-results', user?.id, year],
     queryFn: async () => {
@@ -74,7 +71,8 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
           .select('*')
           .eq('user_id', user.id)
           .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+          .lte('created_at', endDate.toISOString())
+          .eq('is_perfect_score', true);
         
         if (error) {
           console.error('Error fetching test results:', error);
@@ -89,13 +87,12 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     },
     enabled: !!user,
     refetchOnWindowFocus: false,
-    staleTime: 300000, // 5 минут
+    staleTime: 300000,
     retry: 1,
-    placeholderData: [], // Используем пустой массив в качестве заглушки
-    refetchInterval: false // Отключаем автоматическое обновление
+    placeholderData: [],
+    refetchInterval: false
   });
   
-  // Получаем данные о пройденных уроках
   const { data: lessonResults, isLoading: isLoadingLessons } = useQuery({
     queryKey: ['lesson-progress', user?.id, year],
     queryFn: async () => {
@@ -125,31 +122,26 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     },
     enabled: !!user,
     refetchOnWindowFocus: false,
-    staleTime: 300000, // 5 минут
+    staleTime: 300000,
     retry: 1,
-    placeholderData: [], // Используем пустой массив в качестве заглушки
-    refetchInterval: false // Отключаем автоматическое обновление
+    placeholderData: [],
+    refetchInterval: false
   });
   
-  // Подготавливаем данные для графика
   const [chartData, setChartData] = useState<MonthlyScore[]>(generateEmptyData());
   
   useEffect(() => {
-    // Названия месяцев
     const monthNames = [
       'Янв', 'Фев', 'Март', 'Апр', 'Май', 'Июнь',
       'Июль', 'Авг', 'Сент', 'Окт', 'Нояб', 'Дек'
     ];
     
-    // Получаем текущий месяц
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     
-    // Создаем структуру для хранения результатов по месяцам
     const monthlyTestScores: Record<number, number> = {};
     const monthlyLessonScores: Record<number, number> = {};
     
-    // Заполняем данные о результатах тестов по месяцам
     if (testResults && testResults.length > 0) {
       testResults.forEach(result => {
         const date = new Date(result.created_at);
@@ -159,12 +151,10 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
           monthlyTestScores[month] = 0;
         }
         
-        // Считаем количество пройденных тестов
         monthlyTestScores[month] += 1;
       });
     }
     
-    // Заполняем данные о пройденных уроках по месяцам
     if (lessonResults && lessonResults.length > 0) {
       lessonResults.forEach(result => {
         const date = new Date(result.created_at);
@@ -174,12 +164,10 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
           monthlyLessonScores[month] = 0;
         }
         
-        // Каждый пройденный урок добавляет 1
         monthlyLessonScores[month] += 1;
       });
     }
     
-    // Преобразуем данные в формат для графика
     const data = monthNames.map((name, index) => {
       const testCount = monthlyTestScores[index] || 0;
       const lessonCount = monthlyLessonScores[index] || 0;
@@ -195,16 +183,13 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     setChartData(data);
   }, [testResults, lessonResults, year]);
   
-  // Определяем, нужно ли показывать будущие месяцы
   const currentYear = new Date().getFullYear();
   const shouldLimitToCurrentMonth = year === currentYear;
   const currentMonth = new Date().getMonth();
   
-  // Фильтруем будущие месяцы если нужно
   const enhancedData = chartData
     .filter((_, index) => !shouldLimitToCurrentMonth || index <= currentMonth);
 
-  // Обработчики для кнопок переключения года
   const handlePrevYear = () => setYear(year - 1);
   const handleNextYear = () => {
     if (year < currentYear) {
@@ -266,10 +251,8 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                 stroke="#B794F4" 
                 strokeWidth={3} 
                 dot={(props) => {
-                  // Для точек используем особую логику отображения
                   const { cx, cy, payload } = props;
                   
-                  // Если это текущий месяц, показываем особую точку и балл над ней
                   if (payload && payload.isCurrentMonth) {
                     return (
                       <g>
@@ -295,7 +278,6 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                     );
                   }
                   
-                  // Для остальных месяцев точек нет
                   return null;
                 }}
                 activeDot={{ r: 6, fill: '#B794F4', stroke: '#fff', strokeWidth: 2 }}
@@ -307,10 +289,8 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                 stroke="#F687B3" 
                 strokeWidth={3} 
                 dot={(props) => {
-                  // Для точек используем особую логику отображения
                   const { cx, cy, payload } = props;
                   
-                  // Если это текущий месяц, показываем особую точку и балл над ней
                   if (payload && payload.isCurrentMonth) {
                     return (
                       <g>
@@ -336,7 +316,6 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
                     );
                   }
                   
-                  // Для остальных месяцев точек нет
                   return null;
                 }}
                 activeDot={{ r: 6, fill: '#F687B3', stroke: '#fff', strokeWidth: 2 }}

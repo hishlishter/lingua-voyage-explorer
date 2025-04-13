@@ -53,11 +53,15 @@ const TestDetail = () => {
       score: number; 
       total_questions: number 
     }) => {
+      // Добавляем проверку на идеальный результат
+      const isPerfectScore = result.score === result.total_questions;
+      
       const success = await saveTestResult(
         result.user_id,
         result.test_id,
         result.score,
-        result.total_questions
+        result.total_questions,
+        isPerfectScore  // Передаем флаг идеального результата
       );
       
       if (!success) {
@@ -103,6 +107,7 @@ const TestDetail = () => {
         }
       });
       
+      const isPerfectScore = correctAnswers === (test.questions?.length || 0);
       setScore(correctAnswers);
       setShowResults(true);
       

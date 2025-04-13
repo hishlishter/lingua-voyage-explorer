@@ -210,6 +210,16 @@ export type PracticeResult = {
   created_at?: string;
 };
 
+export interface TestResult {
+  id: number;
+  user_id: string;
+  test_id: string;
+  score: number;
+  total_questions: number;
+  created_at: string;
+  is_perfect_score: boolean;
+}
+
 export const checkAuth = async () => {
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -276,46 +286,56 @@ export const fetchTestWithQuestions = async (testId: string): Promise<Test | nul
   }
 };
 
-export const saveTestResult = async (userId: string, testId: string, score: number, totalQuestions: number): Promise<boolean> => {
+export const saveTestResult = async (
+  userId: string,
+  testId: string,
+  score: number,
+  totalQuestions: number,
+  isPerfectScore = false
+): Promise<boolean> => {
   try {
-    console.log(`Сохранение результатов теста: пользователь=${userId}, тест=${testId}, баллы=${score}/${totalQuestions}`);
-    
-    const { error: resultError } = await supabase
+    const { error } = await supabase
       .from('test_results')
-      .insert([{
+      .insert({
         user_id: userId,
         test_id: testId,
         score: score,
         total_questions: totalQuestions,
-      }]);
-    
-    if (resultError) {
-      console.error('Ошибка сохранения результатов теста:', resultError);
-      throw resultError;
+        created_at: new Date().toISOString(),
+        is_perfect_score: isPerfectScore
+      });
+
+    if (error) {
+      console.error('Error saving test result:', error);
+      return false;
     }
-    
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('tests_completed')
-      .eq('id', userId)
-      .single();
-    
-    if (profileData) {
+
+    if (isPerfectScore) {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('tests_completed')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile for update:', profileError);
+        return true;
+      }
+
+      const currentCount = profileData?.tests_completed || 0;
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ tests_completed: (profileData.tests_completed || 0) + 1 })
+        .update({ tests_completed: currentCount + 1 })
         .eq('id', userId);
-      
+
       if (updateError) {
-        console.error('Ошибка обновления счетчика тестов в профиле:', updateError);
-        throw updateError;
+        console.error('Error updating profile tests_completed count:', updateError);
       }
     }
-    
-    console.log('Результаты теста успешно сохранены');
+
     return true;
-  } catch (err) {
-    console.error('Непредвиденная ошибка при сохранении результатов теста:', err);
+  } catch (error) {
+    console.error('Error in saveTestResult:', error);
     return false;
   }
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -67,7 +66,6 @@ const UserProfile = () => {
         if (error) {
           console.error('UserProfile: Error fetching profile:', error);
           
-          // If profile doesn't exist, create it using the auth context helper
           if (error.code === 'PGRST116') {
             console.log('UserProfile: Profile not found, attempting to create');
             return ensureUserProfile(user);
@@ -101,7 +99,6 @@ const UserProfile = () => {
     mutationFn: async (avatarUrl: string) => {
       if (!user) throw new Error('User not authenticated');
       
-      // Update local cache first for faster UI updates
       const updatedProfile = {
         ...(profile || localProfile || fallbackProfile),
         avatar_url: avatarUrl
@@ -109,7 +106,6 @@ const UserProfile = () => {
       setLocalProfile(updatedProfile);
       localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
       
-      // Update profile in database
       return createOrUpdateProfile(updatedProfile);
     },
     onSuccess: () => {
@@ -131,7 +127,6 @@ const UserProfile = () => {
     }
   };
 
-  // Use base64 encoding for avatar instead of storage bucket
   const saveAvatar = async () => {
     if (!avatarFile || !user) {
       toast.error('Файл не выбран');
@@ -141,18 +136,13 @@ const UserProfile = () => {
     try {
       setIsUploading(true);
       
-      // Convert file to base64 string
       const reader = new FileReader();
       
       reader.onload = async (event) => {
         if (event.target && event.target.result) {
           try {
-            // Get base64 string
             const base64String = event.target.result.toString();
-            
-            // Use the base64 string as the avatar URL
             await updateAvatarMutation.mutateAsync(base64String);
-            
             setDialogOpen(false);
           } catch (error) {
             console.error('Error saving avatar:', error);
@@ -169,9 +159,7 @@ const UserProfile = () => {
         setIsUploading(false);
       };
       
-      // Read file as data URL (base64)
       reader.readAsDataURL(avatarFile);
-      
     } catch (error) {
       toast.error('Ошибка при обработке изображения');
       console.error('Avatar processing error:', error);

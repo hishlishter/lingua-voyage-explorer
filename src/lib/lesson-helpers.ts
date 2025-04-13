@@ -49,6 +49,30 @@ export const saveLessonProgress = async (
       }
     }
 
+    // If marking as completed, increment courses_completed count in profile
+    if (isCompleted) {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('courses_completed')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile for update:', profileError);
+        return true; // Still return true since the lesson progress was saved
+      }
+
+      const currentCount = profileData?.courses_completed || 0;
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ courses_completed: currentCount + 1 })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Error updating profile courses_completed count:', updateError);
+      }
+    }
+
     return true;
   } catch (error) {
     console.error('Error saving lesson progress:', error);
