@@ -217,7 +217,7 @@ export interface TestResult {
   score: number;
   total_questions: number;
   created_at: string;
-  is_perfect_score: boolean;
+  is_perfect_score: boolean
 }
 
 export const checkAuth = async () => {
@@ -294,6 +294,7 @@ export const saveTestResult = async (
   isPerfectScore = false
 ): Promise<boolean> => {
   try {
+    // We're not going to set created_at explicitly, let Supabase handle it
     const { error } = await supabase
       .from('test_results')
       .insert({
@@ -301,7 +302,6 @@ export const saveTestResult = async (
         test_id: testId,
         score: score,
         total_questions: totalQuestions,
-        created_at: new Date().toISOString(),
         is_perfect_score: isPerfectScore
       });
 

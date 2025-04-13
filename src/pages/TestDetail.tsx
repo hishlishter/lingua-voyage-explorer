@@ -22,6 +22,7 @@ const TestDetail = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: string}>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const [isPerfectScore, setIsPerfectScore] = useState(false);
 
   // Получение информации о тесте
   const { data: test, isLoading, error } = useQuery({
@@ -53,15 +54,16 @@ const TestDetail = () => {
       score: number; 
       total_questions: number 
     }) => {
-      // Добавляем проверку на идеальный результат
+      // Проверяем на идеальный результат (100% правильных ответов)
       const isPerfectScore = result.score === result.total_questions;
+      setIsPerfectScore(isPerfectScore);
       
       const success = await saveTestResult(
         result.user_id,
         result.test_id,
         result.score,
         result.total_questions,
-        isPerfectScore  // Передаем флаг идеального результата
+        isPerfectScore
       );
       
       if (!success) {
@@ -107,7 +109,6 @@ const TestDetail = () => {
         }
       });
       
-      const isPerfectScore = correctAnswers === (test.questions?.length || 0);
       setScore(correctAnswers);
       setShowResults(true);
       
@@ -235,6 +236,7 @@ const TestDetail = () => {
                 score={score}
                 totalQuestions={test.questions?.length || 0}
                 testTitle={test.title}
+                isPerfectScore={isPerfectScore}
               />
             )}
           </div>
