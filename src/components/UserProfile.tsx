@@ -274,7 +274,7 @@ const UserProfile = () => {
           </p>
         </div>
         <div className="py-3 px-2 border-l border-gray-200">
-          <p className="text-muted-foreground text-sm">Пройдено курсов</p>
+          <p className="text-muted-foreground text-sm">Пройдено уроков</p>
           <p className="text-3xl font-bold">
             {profileData.courses_completed || 0}
           </p>

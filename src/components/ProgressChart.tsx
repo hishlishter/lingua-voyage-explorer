@@ -262,7 +262,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
               <Line 
                 type="monotone" 
                 dataKey="tests" 
-                name="Тесты"
+                name="tests"
                 stroke="#B794F4" 
                 strokeWidth={3} 
                 dot={(props) => {
@@ -303,7 +303,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
               <Line 
                 type="monotone" 
                 dataKey="lessons" 
-                name="Уроки"
+                name="lessons"
                 stroke="#F687B3" 
                 strokeWidth={3} 
                 dot={(props) => {

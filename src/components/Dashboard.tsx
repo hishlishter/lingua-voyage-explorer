@@ -94,7 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b pb-2">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-blue-500" />
+                  <BookOpen className="h-5 w-5 text-pink-500" />
                   <span className="text-sm font-medium">Пройдено уроков</span>
                 </div>
                 <span className="text-lg font-bold">{totalCompletedLessons}</span>
