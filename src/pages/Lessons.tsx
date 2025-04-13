@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -11,17 +10,6 @@ import { BookOpen, Languages, GraduationCap, Play, CheckCircle } from 'lucide-re
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuth } from '@/context/AuthContext';
-
-interface LessonProgress {
-  id: number;
-  user_id: string;
-  lesson_id: number;
-  score: number;
-  total_questions: number;
-  is_completed: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
 
 const LessonSkeleton = () => (
   <Card className="overflow-hidden">
@@ -160,7 +148,7 @@ const Lessons = () => {
   const handleStartLesson = (lessonId: number) => {
     navigate(`/lessons/${lessonId}`);
     toast.success("Урок открыт", {
-      description: "Теперь вы можете изучать теоретический материал и пройти тест"
+      description: "Теперь вы можете изучать теоретический материал"
     });
   };
   

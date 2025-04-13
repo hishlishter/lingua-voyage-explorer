@@ -46,7 +46,27 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
     
     return courseProgressData.reduce((total, progress) => {
       if (!progress) return total;
-      return total + (progress.lessons_completed || 0);
+      
+      // Получаем количество завершенных уроков из прогресса
+      let completedLessonsCount = 0;
+      
+      if (progress.completed_lessons) {
+        try {
+          // Если completed_lessons это строка с JSON, парсим его
+          const completedLessons = typeof progress.completed_lessons === 'string'
+            ? JSON.parse(progress.completed_lessons)
+            : progress.completed_lessons;
+            
+          // Если это массив, берем его длину
+          if (Array.isArray(completedLessons)) {
+            completedLessonsCount = completedLessons.length;
+          }
+        } catch (e) {
+          console.error('Error parsing completed lessons:', e);
+        }
+      }
+      
+      return total + completedLessonsCount;
     }, 0);
   }, [courseProgressData]);
   
@@ -75,17 +95,9 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
               <div className="flex items-center justify-between border-b pb-2">
                 <div className="flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-blue-500" />
-                  <span className="text-sm font-medium">Пройдено уроков за сегодня</span>
+                  <span className="text-sm font-medium">Пройдено уроков</span>
                 </div>
                 <span className="text-lg font-bold">{totalCompletedLessons}</span>
-              </div>
-              
-              <div className="flex items-center justify-between pb-2">
-                <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-amber-500" />
-                  <span className="text-sm font-medium">Пройдено тестов за сегодня</span>
-                </div>
-                <span className="text-lg font-bold">{profile.tests_completed || 0}</span>
               </div>
             </div>
           </CardContent>
