@@ -1,4 +1,3 @@
-
 -- Create tables
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
@@ -335,3 +334,82 @@ VALUES
   ('6', 'Днём', false),
   ('6', 'Вечером', true),
   ('6', 'В любое время', false);
+
+-- Таблица для словарного запаса
+CREATE TABLE IF NOT EXISTS vocabulary (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  word TEXT NOT NULL,
+  translation TEXT NOT NULL,
+  language TEXT NOT NULL,
+  difficulty_level TEXT DEFAULT 'beginner',
+  times_practiced INT DEFAULT 0,
+  last_practiced_at TIMESTAMP WITH TIME ZONE,
+  status TEXT DEFAULT 'learning' CHECK (status IN ('learning', 'mastered', 'forgotten')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Таблица для достижений пользователей
+CREATE TABLE IF NOT EXISTS user_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  achievement_name TEXT NOT NULL,
+  description TEXT,
+  points INT DEFAULT 0,
+  icon_url TEXT,
+  unlocked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  category TEXT CHECK (category IN ('test', 'course', 'vocabulary', 'streak'))
+);
+
+-- Таблица для целей обучения
+CREATE TABLE IF NOT EXISTS learning_goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  goal_type TEXT CHECK (goal_type IN ('daily_words', 'course_completion', 'test_score', 'streak')),
+  target_value INT NOT NULL,
+  current_value INT DEFAULT 0,
+  start_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  end_date TIMESTAMP WITH TIME ZONE,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'failed')),
+  reward TEXT
+);
+
+-- Политики безопасности для новых таблиц
+ALTER TABLE vocabulary ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE learning_goals ENABLE ROW LEVEL SECURITY;
+
+-- Политики для нового словаря
+CREATE POLICY "Users can view their own vocabulary"
+  ON vocabulary FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their vocabulary"
+  ON vocabulary FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their vocabulary"
+  ON vocabulary FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Политики для достижений
+CREATE POLICY "Users can view their own achievements"
+  ON user_achievements FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their achievements"
+  ON user_achievements FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Политики для учебных целей
+CREATE POLICY "Users can view their own learning goals"
+  ON learning_goals FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their learning goals"
+  ON learning_goals FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their learning goals"
+  ON learning_goals FOR UPDATE
+  USING (auth.uid() = user_id);
