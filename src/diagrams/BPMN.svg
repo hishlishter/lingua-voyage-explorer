@@ -1,0 +1,126 @@
+
+<svg width="900" height="500" xmlns="http://www.w3.org/2000/svg">
+  <!-- BPMN диаграмма -->
+  <style>
+    .pool {
+      fill: none;
+      stroke: black;
+      stroke-width: 2;
+    }
+    .lane {
+      fill: #f5f5f5;
+      stroke: black;
+      stroke-width: 1;
+    }
+    .lane-header {
+      fill: #e9e9e9;
+      stroke: black;
+      stroke-width: 1;
+    }
+    .activity {
+      fill: white;
+      stroke: black;
+      stroke-width: 2;
+      rx: 5;
+      ry: 5;
+    }
+    .event-start {
+      fill: white;
+      stroke: black;
+      stroke-width: 2;
+    }
+    .event-end {
+      fill: black;
+      stroke: black;
+      stroke-width: 2;
+    }
+    .gateway {
+      fill: white;
+      stroke: black;
+      stroke-width: 2;
+    }
+    .flow {
+      stroke: black;
+      stroke-width: 1.5;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .text {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+    .title {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+  
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" />
+    </marker>
+  </defs>
+  
+  <!-- Заголовок -->
+  <text x="450" y="30" class="title" text-anchor="middle">Бизнес-процесс изучения языка в MarGO</text>
+  
+  <!-- Бассейн -->
+  <rect x="50" y="50" width="800" height="400" class="pool" />
+  
+  <!-- Дорожки -->
+  <rect x="50" y="50" width="150" height="400" class="lane-header" />
+  <text x="125" y="250" class="text" text-anchor="middle" transform="rotate(-90,125,250)">Пользователь</text>
+  
+  <!-- Процесс -->
+  <!-- Начальное событие -->
+  <circle cx="240" cy="100" r="15" class="event-start" />
+  <text x="240" y="80" class="text" text-anchor="middle">Начало</text>
+  
+  <!-- Активности первой линии -->
+  <rect x="200" y="150" width="100" height="60" class="activity" />
+  <text x="250" y="185" class="text" text-anchor="middle">Регистрация</text>
+  
+  <rect x="350" y="150" width="100" height="60" class="activity" />
+  <text x="400" y="185" class="text" text-anchor="middle">Выбор курса</text>
+  
+  <rect x="500" y="150" width="100" height="60" class="activity" />
+  <text x="550" y="185" class="text" text-anchor="middle">Прохождение урока</text>
+  
+  <rect x="650" y="150" width="100" height="60" class="activity" />
+  <text x="700" y="185" class="text" text-anchor="middle">Тестирование</text>
+  
+  <!-- Шлюз -->
+  <rect x="350" y="260" width="50" height="50" class="gateway" transform="rotate(45,375,285)" />
+  <text x="375" y="330" class="text" text-anchor="middle">Результат?</text>
+  
+  <!-- Активности второй линии -->
+  <rect x="200" y="350" width="100" height="60" class="activity" />
+  <text x="250" y="385" class="text" text-anchor="middle">Повторное изучение</text>
+  
+  <rect x="500" y="350" width="100" height="60" class="activity" />
+  <text x="550" y="385" class="text" text-anchor="middle">Следующий урок</text>
+  
+  <!-- Конечные события -->
+  <circle cx="700" cy="360" r="15" class="event-end" />
+  <text x="700" y="390" class="text" text-anchor="middle">Курс завершен</text>
+  
+  <!-- Потоки -->
+  <!-- Начальные потоки -->
+  <path d="M 240 115 L 240 150" class="flow" />
+  <path d="M 300 180 L 350 180" class="flow" />
+  <path d="M 450 180 L 500 180" class="flow" />
+  <path d="M 600 180 L 650 180" class="flow" />
+  <path d="M 700 210 L 700 240 L 375 240 L 375 260" class="flow" />
+  
+  <!-- Потоки после шлюза -->
+  <path d="M 350 285 L 250 285 L 250 350" class="flow" />
+  <text x="290" y="275" class="text" text-anchor="middle">Неудача</text>
+  
+  <path d="M 400 285 L 550 285 L 550 350" class="flow" />
+  <text x="480" y="275" class="text" text-anchor="middle">Успех</text>
+  
+  <!-- Завершающие потоки -->
+  <path d="M 250 350 L 250 310 L 100 310 L 100 180 L 200 180" class="flow" stroke-dasharray="5,5" />
+  <path d="M 600 380 L 685 380" class="flow" />
+</svg>

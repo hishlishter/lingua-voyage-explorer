@@ -1,0 +1,129 @@
+
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Концептуальная модель предметной области -->
+  <style>
+    .entity {
+      fill: white;
+      stroke: black;
+      stroke-width: 2;
+    }
+    .entity-title {
+      font-weight: bold;
+      font-family: Arial, sans-serif;
+    }
+    .entity-attr {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+    .relation {
+      stroke: black;
+      stroke-width: 2;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .cardinality {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+  
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" />
+    </marker>
+  </defs>
+  
+  <!-- Пользователь -->
+  <rect x="300" y="50" width="200" height="120" class="entity" />
+  <text x="400" y="70" text-anchor="middle" class="entity-title">Пользователь</text>
+  <line x1="300" y1="80" x2="500" y2="80" stroke="black" stroke-width="1" />
+  <text x="310" y="100" class="entity-attr">Эл. почта</text>
+  <text x="310" y="120" class="entity-attr">Имя и фамилия</text>
+  <text x="310" y="140" class="entity-attr">Дата регистрации</text>
+  <text x="310" y="160" class="entity-attr">Уровень владения</text>
+  
+  <!-- Уроки -->
+  <rect x="50" y="250" width="200" height="120" class="entity" />
+  <text x="150" y="270" text-anchor="middle" class="entity-title">Уроки</text>
+  <line x1="50" y1="280" x2="250" y2="280" stroke="black" stroke-width="1" />
+  <text x="60" y="300" class="entity-attr">Название</text>
+  <text x="60" y="320" class="entity-attr">Описание</text>
+  <text x="60" y="340" class="entity-attr">Длительность</text>
+  <text x="60" y="360" class="entity-attr">Сложность</text>
+  
+  <!-- Словарь -->
+  <rect x="300" y="250" width="200" height="120" class="entity" />
+  <text x="400" y="270" text-anchor="middle" class="entity-title">Словарь</text>
+  <line x1="300" y1="280" x2="500" y2="280" stroke="black" stroke-width="1" />
+  <text x="310" y="300" class="entity-attr">Слово</text>
+  <text x="310" y="320" class="entity-attr">Перевод</text>
+  <text x="310" y="340" class="entity-attr">Кол-во повторений</text>
+  <text x="310" y="360" class="entity-attr">Статус изучения</text>
+  
+  <!-- Тесты -->
+  <rect x="550" y="250" width="200" height="120" class="entity" />
+  <text x="650" y="270" text-anchor="middle" class="entity-title">Тесты</text>
+  <line x1="550" y1="280" x2="750" y2="280" stroke="black" stroke-width="1" />
+  <text x="560" y="300" class="entity-attr">Название</text>
+  <text x="560" y="320" class="entity-attr">Тип теста</text>
+  <text x="560" y="340" class="entity-attr">Сложность</text>
+  <text x="560" y="360" class="entity-attr">Кол-во вопросов</text>
+  
+  <!-- Грамматика -->
+  <rect x="50" y="450" width="200" height="120" class="entity" />
+  <text x="150" y="470" text-anchor="middle" class="entity-title">Грамматика</text>
+  <line x1="50" y1="480" x2="250" y2="480" stroke="black" stroke-width="1" />
+  <text x="60" y="500" class="entity-attr">Правило</text>
+  <text x="60" y="520" class="entity-attr">Примеры</text>
+  <text x="60" y="540" class="entity-attr">Уровень</text>
+  
+  <!-- Слова -->
+  <rect x="300" y="450" width="200" height="120" class="entity" />
+  <text x="400" y="470" text-anchor="middle" class="entity-title">Слова</text>
+  <line x1="300" y1="480" x2="500" y2="480" stroke="black" stroke-width="1" />
+  <text x="310" y="500" class="entity-attr">Слово</text>
+  <text x="310" y="520" class="entity-attr">Перевод</text>
+  <text x="310" y="540" class="entity-attr">Примеры использования</text>
+  <text x="310" y="560" class="entity-attr">Категория</text>
+  
+  <!-- Задания -->
+  <rect x="550" y="450" width="200" height="120" class="entity" />
+  <text x="650" y="470" text-anchor="middle" class="entity-title">Задания</text>
+  <line x1="550" y1="480" x2="750" y2="480" stroke="black" stroke-width="1" />
+  <text x="560" y="500" class="entity-attr">Вопрос</text>
+  <text x="560" y="520" class="entity-attr">Варианты ответов</text>
+  <text x="560" y="540" class="entity-attr">Правильный ответ</text>
+  <text x="560" y="560" class="entity-attr">Баллы</text>
+  
+  <!-- Связи -->
+  <!-- Пользователь - Уроки -->
+  <path d="M 300 110 L 200 110 L 200 250" class="relation" />
+  <text x="240" y="105" class="cardinality">1</text>
+  <text x="190" y="230" class="cardinality">*</text>
+  
+  <!-- Пользователь - Словарь -->
+  <path d="M 400 170 L 400 250" class="relation" />
+  <text x="410" y="190" class="cardinality">1</text>
+  <text x="410" y="240" class="cardinality">*</text>
+  
+  <!-- Пользователь - Тесты -->
+  <path d="M 500 110 L 600 110 L 600 250" class="relation" />
+  <text x="560" y="105" class="cardinality">1</text>
+  <text x="610" y="230" class="cardinality">*</text>
+  
+  <!-- Уроки - Грамматика -->
+  <path d="M 150 370 L 150 450" class="relation" />
+  <text x="160" y="390" class="cardinality">1</text>
+  <text x="160" y="440" class="cardinality">*</text>
+  
+  <!-- Словарь - Слова -->
+  <path d="M 400 370 L 400 450" class="relation" />
+  <text x="410" y="390" class="cardinality">1</text>
+  <text x="410" y="440" class="cardinality">*</text>
+  
+  <!-- Тесты - Задания -->
+  <path d="M 650 370 L 650 450" class="relation" />
+  <text x="660" y="390" class="cardinality">1</text>
+  <text x="660" y="440" class="cardinality">*</text>
+</svg>

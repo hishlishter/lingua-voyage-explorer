@@ -1,0 +1,163 @@
+
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Use Case диаграмма -->
+  <style>
+    .actor {
+      fill: white;
+      stroke: black;
+      stroke-width: 2;
+    }
+    .usecase {
+      fill: white;
+      stroke: black;
+      stroke-width: 2;
+      rx: 20;
+      ry: 15;
+    }
+    .line {
+      stroke: black;
+      stroke-width: 2;
+      fill: none;
+    }
+    .text {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+    .extends {
+      stroke: black;
+      stroke-width: 1;
+      stroke-dasharray: 5,5;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .association {
+      stroke: black;
+      stroke-width: 2;
+      fill: none;
+    }
+    .system-boundary {
+      fill: none;
+      stroke: black;
+      stroke-width: 2;
+      stroke-dasharray: 10,5;
+    }
+  </style>
+  
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" />
+    </marker>
+  </defs>
+  
+  <!-- Системная граница -->
+  <rect x="200" y="50" width="550" height="500" rx="10" ry="10" class="system-boundary" />
+  <text x="475" y="70" class="text" text-anchor="middle" font-weight="bold">Веб-приложение MarGO</text>
+  
+  <!-- Акторы -->
+  <!-- Ученик -->
+  <circle cx="100" cy="150" r="15" class="actor" />
+  <line x1="100" y1="165" x2="100" y2="200" class="line" />
+  <line x1="80" y1="180" x2="120" y2="180" class="line" />
+  <line x1="100" y1="200" x2="80" y2="230" class="line" />
+  <line x1="100" y1="200" x2="120" y2="230" class="line" />
+  <text x="100" y="250" class="text" text-anchor="middle">Ученик</text>
+  
+  <!-- Преподаватель -->
+  <circle cx="100" cy="350" r="15" class="actor" />
+  <line x1="100" y1="365" x2="100" y2="400" class="line" />
+  <line x1="80" y1="380" x2="120" y2="380" class="line" />
+  <line x1="100" y1="400" x2="80" y2="430" class="line" />
+  <line x1="100" y1="400" x2="120" y2="430" class="line" />
+  <text x="100" y="450" class="text" text-anchor="middle">Преподаватель</text>
+  
+  <!-- Администратор -->
+  <circle cx="100" cy="500" r="15" class="actor" />
+  <line x1="100" y1="515" x2="100" y2="550" class="line" />
+  <line x1="80" y1="530" x2="120" y2="530" class="line" />
+  <line x1="100" y1="550" x2="80" y2="580" class="line" />
+  <line x1="100" y1="550" x2="120" y2="580" class="line" />
+  <text x="100" y="600" class="text" text-anchor="middle">Администратор</text>
+  
+  <!-- Варианты использования -->
+  <!-- Регистрация -->
+  <ellipse cx="300" cy="100" rx="80" ry="25" class="usecase" />
+  <text x="300" y="105" class="text" text-anchor="middle">Регистрация и вход</text>
+  
+  <!-- Варианты использования: первый ряд -->
+  <ellipse cx="300" cy="180" rx="80" ry="25" class="usecase" />
+  <text x="300" y="185" class="text" text-anchor="middle">Сброс пароля</text>
+  
+  <ellipse cx="470" cy="100" rx="80" ry="25" class="usecase" />
+  <text x="470" y="105" class="text" text-anchor="middle">Прохождение уроков</text>
+  
+  <ellipse cx="470" cy="180" rx="80" ry="25" class="usecase" />
+  <text x="470" y="185" class="text" text-anchor="middle">Выполнение заданий</text>
+  
+  <ellipse cx="640" cy="100" rx="80" ry="25" class="usecase" />
+  <text x="640" y="105" class="text" text-anchor="middle">Просмотр статистики</text>
+  
+  <ellipse cx="640" cy="180" rx="80" ry="25" class="usecase" />
+  <text x="640" y="185" class="text" text-anchor="middle">Установка целей</text>
+  
+  <!-- Варианты использования: второй ряд -->
+  <ellipse cx="300" cy="260" rx="80" ry="25" class="usecase" />
+  <text x="300" y="265" class="text" text-anchor="middle">Изучение словаря</text>
+  
+  <ellipse cx="470" cy="260" rx="80" ry="25" class="usecase" />
+  <text x="470" y="265" class="text" text-anchor="middle">Прохождение тестов</text>
+  
+  <ellipse cx="640" cy="260" rx="80" ry="25" class="usecase" />
+  <text x="640" y="265" class="text" text-anchor="middle">Управление профилем</text>
+  
+  <!-- Варианты использования для преподавателя -->
+  <ellipse cx="300" cy="350" rx="80" ry="25" class="usecase" />
+  <text x="300" y="355" class="text" text-anchor="middle">Создание уроков</text>
+  
+  <ellipse cx="470" cy="350" rx="80" ry="25" class="usecase" />
+  <text x="470" y="355" class="text" text-anchor="middle">Создание тестов</text>
+  
+  <ellipse cx="640" cy="350" rx="80" ry="25" class="usecase" />
+  <text x="640" y="355" class="text" text-anchor="middle">Проверка работ</text>
+  
+  <!-- Варианты использования для администратора -->
+  <ellipse cx="300" cy="500" rx="80" ry="25" class="usecase" />
+  <text x="300" y="505" class="text" text-anchor="middle">Блокировка пользователей</text>
+  
+  <ellipse cx="470" cy="500" rx="80" ry="25" class="usecase" />
+  <text x="470" y="505" class="text" text-anchor="middle">Удаление контента</text>
+  
+  <ellipse cx="640" cy="500" rx="80" ry="25" class="usecase" />
+  <text x="640" y="505" class="text" text-anchor="middle">Управление правами</text>
+  
+  <!-- Связи -->
+  <!-- Связи для ученика -->
+  <line x1="120" y1="150" x2="220" y2="100" class="association" />
+  <line x1="120" y1="150" x2="220" y2="180" class="association" />
+  <line x1="120" y1="150" x2="390" y2="100" class="association" />
+  <line x1="120" y1="160" x2="390" y2="180" class="association" />
+  <line x1="120" y1="170" x2="560" y2="100" class="association" />
+  <line x1="120" y1="175" x2="560" y2="180" class="association" />
+  <line x1="120" y1="180" x2="220" y2="260" class="association" />
+  <line x1="120" y1="185" x2="390" y2="260" class="association" />
+  <line x1="120" y1="190" x2="560" y2="260" class="association" />
+  
+  <!-- Связи для преподавателя -->
+  <line x1="120" y1="350" x2="220" y2="350" class="association" />
+  <line x1="120" y1="350" x2="390" y2="350" class="association" />
+  <line x1="120" y1="350" x2="560" y2="350" class="association" />
+  
+  <!-- Связи для администратора -->
+  <line x1="120" y1="500" x2="220" y2="500" class="association" />
+  <line x1="120" y1="500" x2="390" y2="500" class="association" />
+  <line x1="120" y1="500" x2="560" y2="500" class="association" />
+  
+  <!-- Extends связи -->
+  <path d="M 300 155 C 300 160, 470 160, 470 155" class="extends" />
+  <text x="385" y="150" class="text" text-anchor="middle" font-style="italic">«extends»</text>
+  
+  <path d="M 470 155 C 470 160, 640 160, 640 155" class="extends" />
+  <text x="555" y="150" class="text" text-anchor="middle" font-style="italic">«extends»</text>
+  
+  <path d="M 470 235 C 470 240, 640 240, 640 235" class="extends" />
+  <text x="555" y="230" class="text" text-anchor="middle" font-style="italic">«extends»</text>
+</svg>
