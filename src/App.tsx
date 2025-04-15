@@ -13,6 +13,7 @@ import Tests from "./pages/Tests";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import TestDetail from "./pages/TestDetail";
+import Diagrams from "./pages/Diagrams";
 import { AuthProvider } from "./context/AuthContext";
 import { useEffect } from "react";
 import { initializeGrammarLessons } from "./lib/supabase-lessons";
@@ -51,6 +52,7 @@ const AppRoutes = () => {
       <Route path="/tests" element={<Tests />} />
       <Route path="/tests/:id" element={<TestDetail />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/diagrams" element={<Diagrams />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
