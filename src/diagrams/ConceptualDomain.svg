@@ -1,0 +1,136 @@
+
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Концептуальная модель предметной области -->
+  <style>
+    .domain-entity {
+      fill: #e6f7ff;
+      stroke: #1890ff;
+      stroke-width: 2;
+      rx: 10;
+      ry: 10;
+    }
+    .domain-relationship {
+      fill: #fffbe6;
+      stroke: #faad14;
+      stroke-width: 2;
+      rx: 10;
+      ry: 10;
+    }
+    .title {
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 16px;
+      text-anchor: middle;
+    }
+    .attr {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      text-anchor: start;
+    }
+    .line {
+      stroke: #000;
+      stroke-width: 2;
+    }
+    .cardinality {
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 14px;
+    }
+  </style>
+  
+  <text x="450" y="30" font-family="Arial" font-size="20" font-weight="bold" text-anchor="middle">Концептуальная модель предметной области MarGO</text>
+  
+  <!-- Основные сущности -->
+  
+  <!-- Ученик -->
+  <rect x="100" y="100" width="150" height="100" class="domain-entity" />
+  <text x="175" y="125" class="title">Ученик</text>
+  <text x="110" y="150" class="attr">- Персональные данные</text>
+  <text x="110" y="170" class="attr">- Уровень владения</text>
+  <text x="110" y="190" class="attr">- История обучения</text>
+  
+  <!-- Учебный материал -->
+  <rect x="400" y="100" width="150" height="100" class="domain-entity" />
+  <text x="475" y="125" class="title">Учебный материал</text>
+  <text x="410" y="150" class="attr">- Курс</text>
+  <text x="410" y="170" class="attr">- Урок</text>
+  <text x="410" y="190" class="attr">- Грамматика</text>
+  
+  <!-- Словарь -->
+  <rect x="700" y="100" width="150" height="100" class="domain-entity" />
+  <text x="775" y="125" class="title">Словарь</text>
+  <text x="710" y="150" class="attr">- Слова</text>
+  <text x="710" y="170" class="attr">- Переводы</text>
+  <text x="710" y="190" class="attr">- Примеры</text>
+  
+  <!-- Тестирование -->
+  <rect x="100" y="350" width="150" height="100" class="domain-entity" />
+  <text x="175" y="375" class="title">Тестирование</text>
+  <text x="110" y="400" class="attr">- Упражнения</text>
+  <text x="110" y="420" class="attr">- Контрольные тесты</text>
+  <text x="110" y="440" class="attr">- Оценка знаний</text>
+  
+  <!-- Прогресс обучения -->
+  <rect x="400" y="350" width="150" height="100" class="domain-entity" />
+  <text x="475" y="375" class="title">Прогресс обучения</text>
+  <text x="410" y="400" class="attr">- Пройденные уроки</text>
+  <text x="410" y="420" class="attr">- Результаты тестов</text>
+  <text x="410" y="440" class="attr">- Достижения</text>
+  
+  <!-- Адаптивное обучение -->
+  <rect x="700" y="350" width="150" height="100" class="domain-entity" />
+  <text x="775" y="375" class="title">Адаптивное обучение</text>
+  <text x="710" y="400" class="attr">- Индивидуальный план</text>
+  <text x="710" y="420" class="attr">- Рекомендации</text>
+  <text x="710" y="440" class="attr">- Корректировка</text>
+  
+  <!-- Отношения / связи -->
+  
+  <!-- Ученик - Учебный материал -->
+  <line x1="250" y1="150" x2="400" y2="150" class="line" />
+  <text x="325" y="140" class="cardinality">изучает</text>
+  <text x="265" y="145" class="cardinality">1</text>
+  <text x="385" y="145" class="cardinality">N</text>
+  
+  <!-- Ученик - Словарь -->
+  <line x1="250" y1="120" x2="700" y2="120" class="line" />
+  <text x="475" y="110" class="cardinality">пополняет</text>
+  <text x="265" y="115" class="cardinality">1</text>
+  <text x="685" y="115" class="cardinality">1</text>
+  
+  <!-- Ученик - Тестирование -->
+  <line x1="175" y1="200" x2="175" y2="350" class="line" />
+  <text x="205" y="275" class="cardinality">проходит</text>
+  <text x="170" y="215" class="cardinality">1</text>
+  <text x="170" y="335" class="cardinality">N</text>
+  
+  <!-- Учебный материал - Тестирование -->
+  <line x1="400" y1="175" x2="250" y2="375" class="line" />
+  <text x="325" y="275" class="cardinality">содержит</text>
+  <text x="385" y="185" class="cardinality">1</text>
+  <text x="265" y="365" class="cardinality">N</text>
+  
+  <!-- Тестирование - Прогресс обучения -->
+  <line x1="250" y1="400" x2="400" y2="400" class="line" />
+  <text x="325" y="390" class="cardinality">формирует</text>
+  <text x="265" y="395" class="cardinality">N</text>
+  <text x="385" y="395" class="cardinality">1</text>
+  
+  <!-- Прогресс обучения - Адаптивное обучение -->
+  <line x1="550" y1="400" x2="700" y2="400" class="line" />
+  <text x="625" y="390" class="cardinality">влияет на</text>
+  <text x="565" y="395" class="cardinality">1</text>
+  <text x="685" y="395" class="cardinality">1</text>
+  
+  <!-- Адаптивное обучение - Учебный материал -->
+  <line x1="775" y1="350" x2="550" y2="200" class="line" />
+  <text x="660" y="275" class="cardinality">определяет</text>
+  <text x="765" y="335" class="cardinality">1</text>
+  <text x="555" y="210" class="cardinality">N</text>
+  
+  <!-- Словарь - Учебный материал -->
+  <line x1="700" y1="150" x2="550" y2="150" class="line" />
+  <text x="625" y="140" class="cardinality">связан с</text>
+  <text x="685" y="145" class="cardinality">1</text>
+  <text x="565" y="145" class="cardinality">N</text>
+</svg>

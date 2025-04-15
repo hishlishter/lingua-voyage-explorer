@@ -9,8 +9,9 @@ const Diagrams: React.FC = () => {
       <h1 className="text-3xl font-bold mb-8 text-center">Диаграммы проекта MarGO</h1>
       
       <Tabs defaultValue="conceptual">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="conceptual">Концептуальная модель</TabsTrigger>
+          <TabsTrigger value="domain">Предметная область</TabsTrigger>
           <TabsTrigger value="usecase">Use Case</TabsTrigger>
           <TabsTrigger value="bpmn">BPMN</TabsTrigger>
           <TabsTrigger value="dfd">DFD</TabsTrigger>
@@ -21,6 +22,14 @@ const Diagrams: React.FC = () => {
             title="Концептуальная модель предметной области" 
             svgPath="/src/diagrams/ConceptualModel.svg"
             description="Диаграмма показывает основные сущности системы MarGO и связи между ними. Центральным элементом является пользователь, который взаимодействует с уроками, словарем и тестами."
+          />
+        </TabsContent>
+        
+        <TabsContent value="domain">
+          <DiagramViewer 
+            title="Концептуальная модель предметной области (расширенная)" 
+            svgPath="/src/diagrams/ConceptualDomain.svg"
+            description="Расширенная концептуальная модель предметной области детально показывает взаимосвязи между различными аспектами обучения: учеником, учебными материалами, тестированием, прогрессом и адаптивным обучением."
           />
         </TabsContent>
         
