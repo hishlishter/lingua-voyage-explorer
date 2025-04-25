@@ -4,7 +4,6 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from './App';
 import './index.css';
-import Diagrams from './pages/Diagrams';
 import Index from './pages/Index';
 import Auth from './pages/Auth';
 import Courses from './pages/Courses';
@@ -32,7 +31,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="tests/:id" element={<TestDetail />} />
           <Route path="dictionary" element={<Dictionary />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="diagrams" element={<Diagrams />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
