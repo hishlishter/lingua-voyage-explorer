@@ -294,48 +294,96 @@ export const saveTestResult = async (
   isPerfectScore = false
 ): Promise<boolean> => {
   try {
-    // We're not going to set created_at explicitly, let Supabase handle it
-    const { error } = await supabase
-      .from('test_results')
-      .insert({
-        user_id: userId,
-        test_id: testId,
-        score: score,
-        total_questions: totalQuestions,
-        is_perfect_score: isPerfectScore
-      });
+    console.log(`Сохранение результатов теста: пользователь=${userId}, тест=${testId}, баллы=${score}/${totalQuestions}, идеальный результат=${isPerfectScore}`);
+    
+    // Сначала попробуем создать запись с полем is_perfect_score
+    try {
+      const { error } = await supabase
+        .from('test_results')
+        .insert({
+          user_id: userId,
+          test_id: testId,
+          score: score,
+          total_questions: totalQuestions,
+          is_perfect_score: isPerfectScore,
+          created_at: new Date().toISOString() // Явно устанавливаем created_at
+        });
 
-    if (error) {
-      console.error('Error saving test result:', error);
+      if (error) {
+        console.error('Ошибка формата при сохранении результатов теста:', error);
+        
+        // Если ошибка связана с полем is_perfect_score, попробуем без него
+        if (error.message?.includes('is_perfect_score')) {
+          const { error: retryError } = await supabase
+            .from('test_results')
+            .insert({
+              user_id: userId,
+              test_id: testId,
+              score: score,
+              total_questions: totalQuestions,
+              created_at: new Date().toISOString()
+            });
+            
+          if (retryError) {
+            console.error('Повторная ошибка при сохранении результатов теста:', retryError);
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+    } catch (insertError) {
+      console.error('Непредвиденная ошибка при вставке результата теста:', insertError);
       return false;
     }
 
+    // Обновляем счетчик пройденных тестов в профиле, если тест пройден идеально
     if (isPerfectScore) {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('tests_completed')
-        .eq('id', userId)
-        .single();
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('tests_completed')
+          .eq('id', userId)
+          .single();
 
-      if (profileError) {
-        console.error('Error fetching profile for update:', profileError);
-        return true;
-      }
+        if (profileError) {
+          console.error('Ошибка при получении профиля для обновления:', profileError);
+          // Продолжаем выполнение, так как результат теста уже сохранен
+        } else {
+          // Увеличиваем счетчик пройденных тестов
+          const currentCount = profileData?.tests_completed || 0;
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ tests_completed: currentCount + 1 })
+            .eq('id', userId);
 
-      const currentCount = profileData?.tests_completed || 0;
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ tests_completed: currentCount + 1 })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('Error updating profile tests_completed count:', updateError);
+          if (updateError) {
+            console.error('Ошибка при обновлении счетчика тестов в профиле:', updateError);
+          } else {
+            console.log(`Счетчик тестов обновлен: ${currentCount} -> ${currentCount + 1}`);
+            
+            // Обновляем кэш профиля в localStorage
+            try {
+              const cachedProfile = localStorage.getItem(`profile_${userId}`);
+              if (cachedProfile) {
+                const profile = JSON.parse(cachedProfile);
+                profile.tests_completed = currentCount + 1;
+                localStorage.setItem(`profile_${userId}`, JSON.stringify(profile));
+              }
+            } catch (e) {
+              console.error('Ошибка при обновлении кэша профиля:', e);
+            }
+          }
+        }
+      } catch (profileError) {
+        console.error('Непредвиденная ошибка при обновлении профиля:', profileError);
       }
     }
 
+    console.log('Результаты теста успешно сохранены');
     return true;
   } catch (error) {
-    console.error('Error in saveTestResult:', error);
+    console.error('Ошибка в saveTestResult:', error);
     return false;
   }
 };
@@ -344,22 +392,61 @@ export const fetchTestResults = async (userId: string): Promise<any[]> => {
   try {
     console.log(`Загрузка результатов тестов для пользователя ${userId}...`);
     
-    const { data, error } = await supabase
+    // Добавляем временную обработку отсутствия поля created_at
+    let query = supabase
       .from('test_results')
       .select(`
         *,
         test:tests(title, difficulty)
       `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .eq('user_id', userId);
     
-    if (error) {
-      console.error('Ошибка загрузки результатов тестов:', error);
-      throw error;
+    try {
+      // Попытка сортировки по created_at
+      query = query.order('created_at', { ascending: false });
+      const { data, error } = await query;
+      
+      if (error) {
+        // Если ошибка связана с отсутствием created_at, делаем запрос без сортировки
+        console.error('Ошибка загрузки результатов тестов с сортировкой:', error);
+        if (error.message?.includes('created_at')) {
+          const { data: unsortedData, error: unsortedError } = await supabase
+            .from('test_results')
+            .select(`
+              *,
+              test:tests(title, difficulty)
+            `)
+            .eq('user_id', userId);
+          
+          if (unsortedError) {
+            console.error('Ошибка загрузки несортированных результатов тестов:', unsortedError);
+            throw unsortedError;
+          }
+          
+          return unsortedData || [];
+        } else {
+          throw error;
+        }
+      }
+      
+      console.log('Успешно загружено результатов тестов:', data?.length || 0);
+      return data || [];
+    } catch (queryError) {
+      console.error('Ошибка в запросе результатов тестов:', queryError);
+      
+      // Упрощенный запрос без связанных данных и сортировки
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('test_results')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (fallbackError) {
+        console.error('Ошибка загрузки упрощенных результатов тестов:', fallbackError);
+        throw fallbackError;
+      }
+      
+      return fallbackData || [];
     }
-    
-    console.log('Успешно загружено результатов тестов:', data?.length || 0);
-    return data || [];
   } catch (err) {
     console.error('Непредвиденная ошибка при загрузке результатов тестов:', err);
     return [];

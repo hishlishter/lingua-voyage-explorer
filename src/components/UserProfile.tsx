@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -11,7 +12,15 @@ import { supabase, Profile, createOrUpdateProfile } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const UserProfile = () => {
+interface UserProfileProps {
+  totalCompletedLessons?: number;
+  totalCompletedTests?: number;
+}
+
+const UserProfile: React.FC<UserProfileProps> = ({ 
+  totalCompletedLessons,
+  totalCompletedTests
+}) => {
   const { user, ensureUserProfile } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempAvatarURL, setTempAvatarURL] = useState('');
@@ -177,6 +186,10 @@ const UserProfile = () => {
 
   const profileData = profile || localProfile || fallbackProfile;
 
+  // Используем пропсы, если они переданы, иначе берем данные из профиля
+  const displayTestsCompleted = totalCompletedTests !== undefined ? totalCompletedTests : profileData.tests_completed || 0;
+  const displayLessonsCompleted = totalCompletedLessons !== undefined ? totalCompletedLessons : profileData.courses_completed || 0;
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center">
@@ -258,13 +271,13 @@ const UserProfile = () => {
         <div className="py-3 px-2">
           <p className="text-muted-foreground text-sm">Пройдено тестов</p>
           <p className="text-3xl font-bold">
-            {profileData.tests_completed || 0}
+            {displayTestsCompleted}
           </p>
         </div>
         <div className="py-3 px-2 border-l border-gray-200">
           <p className="text-muted-foreground text-sm">Пройдено уроков</p>
           <p className="text-3xl font-bold">
-            {profileData.courses_completed || 0}
+            {displayLessonsCompleted}
           </p>
         </div>
       </div>

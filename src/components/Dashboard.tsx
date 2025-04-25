@@ -5,7 +5,7 @@ import ProgressChart from '@/components/ProgressChart';
 import { Profile } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery } from '@tanstack/react-query';
-import { fetchCourses, fetchCourseProgress } from '@/lib/supabase';
+import { fetchCourses, fetchCourseProgress, fetchTestResults } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Award, BookOpen } from 'lucide-react';
 
@@ -39,6 +39,18 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
     enabled: !!courses && !!profile.id,
     staleTime: 300000,
   });
+  
+  // Получаем данные о пройденных тестах
+  const { data: testResults } = useQuery({
+    queryKey: ['testResultsAll', profile.id],
+    queryFn: async () => {
+      if (!profile.id) return [];
+      
+      return fetchTestResults(profile.id);
+    },
+    enabled: !!profile.id,
+    staleTime: 300000,
+  });
 
   // Подсчитываем общее количество пройденных уроков
   const totalCompletedLessons = React.useMemo(() => {
@@ -70,9 +82,17 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
     }, 0);
   }, [courseProgressData]);
   
+  // Подсчитываем общее количество пройденных тестов
+  const totalCompletedTests = React.useMemo(() => {
+    return testResults?.filter(result => result.is_perfect_score)?.length || profile.tests_completed || 0;
+  }, [testResults, profile.tests_completed]);
+  
   return (
     <>
-      <UserProfile />
+      <UserProfile 
+        totalCompletedLessons={totalCompletedLessons} 
+        totalCompletedTests={totalCompletedTests}
+      />
       
       <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
         <ProgressChart 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -63,23 +64,30 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
       if (!user) return [];
       
       try {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31);
-        
+        // Сначала получаем все результаты тестов
         const { data, error } = await supabase
           .from('test_results')
-          .select('*')
-          .eq('user_id', user.id)
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString())
-          .eq('is_perfect_score', true);
+          .select('*');
         
         if (error) {
           console.error('Error fetching test results:', error);
           return [];
         }
         
-        return data || [];
+        // Затем фильтруем результаты по году вручную
+        const filteredByYear = data?.filter(result => {
+          if (!result.created_at) return false;
+          
+          try {
+            const resultDate = new Date(result.created_at);
+            return resultDate.getFullYear() === year;
+          } catch (e) {
+            console.error('Ошибка при обработке даты результата теста:', e);
+            return false;
+          }
+        });
+        
+        return filteredByYear || [];
       } catch (error) {
         console.error('Error fetching test results:', error);
         return [];
@@ -99,22 +107,31 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
       if (!user) return [];
       
       try {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31);
-        
+        // Получаем данные о прогрессе по урокам без фильтрации по дате
         const { data, error } = await supabase
           .from('lesson_progress')
           .select('*')
-          .eq('user_id', user.id)
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+          .eq('user_id', user.id);
         
         if (error) {
           console.error('Error fetching lesson progress:', error);
           return [];
         }
         
-        return data || [];
+        // Фильтруем результаты по году вручную
+        const filteredByYear = data?.filter(result => {
+          if (!result.created_at) return false;
+          
+          try {
+            const resultDate = new Date(result.created_at);
+            return resultDate.getFullYear() === year;
+          } catch (e) {
+            console.error('Ошибка при обработке даты прогресса урока:', e);
+            return false;
+          }
+        });
+        
+        return filteredByYear || [];
       } catch (error) {
         console.error('Error fetching lesson progress:', error);
         return [];
@@ -144,27 +161,42 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
     
     if (testResults && testResults.length > 0) {
       testResults.forEach(result => {
-        const date = new Date(result.created_at);
-        const month = date.getMonth();
+        if (!result.created_at) return;
         
-        if (!monthlyTestScores[month]) {
-          monthlyTestScores[month] = 0;
+        try {
+          const date = new Date(result.created_at);
+          const month = date.getMonth();
+          
+          if (!monthlyTestScores[month]) {
+            monthlyTestScores[month] = 0;
+          }
+          
+          // Считаем тест полностью пройденным, если это совершенный результат
+          if (result.is_perfect_score) {
+            monthlyTestScores[month] += 1;
+          }
+        } catch (e) {
+          console.error('Ошибка при обработке даты результата теста:', e);
         }
-        
-        monthlyTestScores[month] += 1;
       });
     }
     
     if (lessonResults && lessonResults.length > 0) {
       lessonResults.forEach(result => {
-        const date = new Date(result.created_at);
-        const month = date.getMonth();
+        if (!result.created_at) return;
         
-        if (!monthlyLessonScores[month]) {
-          monthlyLessonScores[month] = 0;
+        try {
+          const date = new Date(result.created_at);
+          const month = date.getMonth();
+          
+          if (!monthlyLessonScores[month]) {
+            monthlyLessonScores[month] = 0;
+          }
+          
+          monthlyLessonScores[month] += 1;
+        } catch (e) {
+          console.error('Ошибка при обработке даты прогресса урока:', e);
         }
-        
-        monthlyLessonScores[month] += 1;
       });
     }
     
