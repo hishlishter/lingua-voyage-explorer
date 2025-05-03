@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -11,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 interface ProgressChartProps {
   title: string;
   year: number;
+  className?: string; // Added className prop as optional
 }
 
 interface MonthlyScore {
@@ -54,7 +54,7 @@ const generateEmptyData = () => {
   }));
 };
 
-const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear }) => {
+const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear, className }) => {
   const [year, setYear] = useState(initialYear);
   const { user } = useAuth();
   
@@ -230,7 +230,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear 
   };
 
   return (
-    <Card className="shadow-sm border-none overflow-hidden">
+    <Card className={`shadow-sm border-none overflow-hidden ${className || ''}`}>
       <CardHeader className="pb-0">
         <div className="flex justify-between items-center">
           <CardTitle className="text-2xl font-semibold">{title}</CardTitle>
