@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -32,7 +33,8 @@ import {
   Course, 
   Lesson, 
   PracticeTest, 
-  PracticeQuestion 
+  PracticeQuestion,
+  PracticeOption
 } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import TestResult from '@/components/TestResult';
@@ -73,7 +75,7 @@ const CourseDetail = () => {
   // Обработчик выбора урока
   const handleSelectLesson = (lesson: Lesson, index: number) => {
     // Проверяем, доступен ли урок для прохождения
-    const previousLessonsCompleted = index === 0 || completedLessons.includes(course?.lessons[index - 1].id || '');
+    const previousLessonsCompleted = index === 0 || completedLessons.includes(course?.lessons?.[index - 1]?.id || '');
     
     if (!previousLessonsCompleted && user?.id) {
       toast({
@@ -99,8 +101,7 @@ const CourseDetail = () => {
         user.id,
         id || '',
         lesson.id,
-        progress?.lessons_completed || 0,
-        progress?.is_completed || false
+        progress?.lessons_completed || 0
       );
     }
   };
@@ -111,14 +112,10 @@ const CourseDetail = () => {
     : null;
   
   // Получаем практический тест для текущего урока
-  const currentPracticeTest = currentLesson?.practice_tests?.length 
-    ? currentLesson.practice_tests[0] 
-    : null;
+  const currentPracticeTest = currentLesson?.practice_tests?.[0] || null;
   
   // Получаем текущий вопрос практического теста
-  const currentQuestion = currentPracticeTest?.questions?.length && currentQuestionIndex < currentPracticeTest.questions.length
-    ? currentPracticeTest.questions[currentQuestionIndex]
-    : null;
+  const currentQuestion = currentPracticeTest?.questions?.[currentQuestionIndex] || null;
 
   // Загружаем данные о пройденных уроках при загрузке страницы
   useEffect(() => {
@@ -141,7 +138,7 @@ const CourseDetail = () => {
       if (progress?.last_lesson_id) {
         setSelectedLessonId(progress.last_lesson_id);
         setOpenLessonId(progress.last_lesson_id);
-      } else {
+      } else if (course.lessons[0]) {
         setSelectedLessonId(course.lessons[0].id);
         setOpenLessonId(course.lessons[0].id);
       }
@@ -194,12 +191,12 @@ const CourseDetail = () => {
     
     // Сохраняем результаты теста, если пользователь авторизован
     if (user?.id && currentPracticeTest.id) {
-      await savePracticeTestResult(
-        user.id, 
-        currentPracticeTest.id, 
-        score, 
-        currentPracticeTest.questions.length
-      );
+      await savePracticeTestResult({
+        user_id: user.id,
+        test_id: currentPracticeTest.id,
+        score: score,
+        total_questions: currentPracticeTest.questions.length
+      });
       
       // Если все ответы верные, отмечаем урок как завершенный
       if (isPerfect && currentLesson) {
@@ -310,7 +307,7 @@ const CourseDetail = () => {
       <div className="space-y-4">
         <h3 className="text-lg font-medium">{question.text}</h3>
         <div className="space-y-2">
-          {question.options.map(option => {
+          {question.options.map((option: PracticeOption) => {
             const isSelected = selectedOptionId === option.id;
             const isCorrect = option.is_correct;
             let optionClass = "p-4 border rounded-md cursor-pointer hover:bg-gray-50";
@@ -574,7 +571,7 @@ const CourseDetail = () => {
                 open={showTestResult}
                 onClose={handleCloseTestResult}
                 score={testScore}
-                totalQuestions={currentPracticeTest.questions?.length ||.0}
+                totalQuestions={currentPracticeTest.questions?.length || 0}
                 testTitle={currentPracticeTest.title}
                 isPerfectScore={isPerfectScore}
               />

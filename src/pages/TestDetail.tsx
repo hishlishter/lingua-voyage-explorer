@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -63,20 +62,13 @@ const TestDetail = () => {
         isPerfectScore
       });
       
-      const success = await saveTestResult(
+      return saveTestResult(
         result.user_id,
         result.test_id,
         result.score,
         result.total_questions,
         isPerfectScore
       );
-      
-      if (!success) {
-        console.error('Не удалось сохранить результаты теста');
-        throw new Error('Не удалось сохранить результаты');
-      }
-      
-      return success;
     },
     onSuccess: () => {
       toast.success('Результаты сохранены');
@@ -101,13 +93,13 @@ const TestDetail = () => {
   const handleNextQuestion = () => {
     if (!test) return;
     
-    if (currentQuestionIndex < (test?.questions?.length || 0) - 1) {
+    if (currentQuestionIndex < (test.questions?.length || 0) - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       // Подсчет результатов
       let correctAnswers = 0;
       
-      test?.questions?.forEach((question, index) => {
+      test.questions?.forEach((question, index) => {
         const selectedOptionId = selectedAnswers[index];
         const correctOption = question.options?.find(option => option.is_correct);
         
@@ -175,7 +167,7 @@ const TestDetail = () => {
     );
   }
 
-  const currentQuestion = test.questions?.[currentQuestionIndex];
+  const currentQuestion = test?.questions?.[currentQuestionIndex];
 
   if (!currentQuestion) {
     return (
@@ -206,17 +198,17 @@ const TestDetail = () => {
               >
                 Назад к тестам
               </Button>
-              <h1 className="text-3xl font-bold">{test.title}</h1>
-              <p className="text-muted-foreground mt-2">{test.description}</p>
+              <h1 className="text-3xl font-bold">{test?.title}</h1>
+              <p className="text-muted-foreground mt-2">{test?.description}</p>
             </div>
             
             <div className="mb-4 text-sm">
-              Вопрос {currentQuestionIndex + 1} из {test.questions?.length || 0}
+              Вопрос {currentQuestionIndex + 1} из {test?.questions?.length || 0}
             </div>
             
             <Card>
               <CardHeader>
-                <CardTitle>{currentQuestion.text}</CardTitle>
+                <CardTitle>{currentQuestion?.text}</CardTitle>
               </CardHeader>
               <CardContent>
                 <RadioGroup 
@@ -224,7 +216,7 @@ const TestDetail = () => {
                   onValueChange={(value) => handleSelectAnswer(value)}
                   className="space-y-3"
                 >
-                  {currentQuestion.options?.map((option: Option) => (
+                  {currentQuestion?.options?.map((option: Option) => (
                     <div key={option.id} className="flex items-center space-x-2">
                       <RadioGroupItem value={option.id.toString()} id={`option-${option.id}`} />
                       <Label htmlFor={`option-${option.id}`}>{option.text}</Label>
@@ -237,7 +229,7 @@ const TestDetail = () => {
                     onClick={handleNextQuestion}
                     disabled={selectedAnswers[currentQuestionIndex] === undefined}
                   >
-                    {currentQuestionIndex < (test.questions?.length || 0) - 1 ? 'Следующий вопрос' : 'Завершить тест'}
+                    {currentQuestionIndex < (test?.questions?.length || 0) - 1 ? 'Следующий вопрос' : 'Завершить тест'}
                   </Button>
                 </div>
               </CardContent>
@@ -248,8 +240,8 @@ const TestDetail = () => {
                 open={showResults}
                 onClose={handleCloseResults}
                 score={score}
-                totalQuestions={test.questions?.length || 0}
-                testTitle={test.title}
+                totalQuestions={test?.questions?.length || 0}
+                testTitle={test?.title || ''}
                 isPerfectScore={isPerfectScore}
               />
             )}

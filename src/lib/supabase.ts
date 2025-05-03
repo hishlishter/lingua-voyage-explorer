@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
@@ -40,6 +39,7 @@ export interface Option {
   id: string;
   question_id: string;
   text: string;
+  is_correct: boolean;
 }
 
 export interface Course {
@@ -57,6 +57,7 @@ export interface Lesson {
   title: string;
   content: string;
   order_index: number;
+  practice_tests?: PracticeTest[];
 }
 
 export interface PracticeTest {
@@ -69,9 +70,15 @@ export interface PracticeTest {
 export interface PracticeQuestion {
   id: string;
   text: string;
-  options: string[];
+  options: PracticeOption[];
   correct_answer: string;
   explanation?: string;
+}
+
+export interface PracticeOption {
+  id: string;
+  text: string;
+  is_correct: boolean;
 }
 
 // Fetch functions
@@ -149,7 +156,7 @@ export const fetchTestResults = async (userId: string): Promise<any[]> => {
   }
 };
 
-export const fetchTestWithQuestions = async (testId: string): Promise<{ test: Test | null, questions: Question[] }> => {
+export const fetchTestWithQuestions = async (testId: string): Promise<Test> => {
   try {
     console.log(`Загрузка теста ${testId} с вопросами...`);
     
@@ -162,7 +169,7 @@ export const fetchTestWithQuestions = async (testId: string): Promise<{ test: Te
     
     if (testError) {
       console.error('Ошибка при загрузке теста:', testError);
-      return { test: null, questions: [] };
+      throw new Error('Ошибка при загрузке теста');
     }
     
     // Получаем вопросы для теста
@@ -173,53 +180,52 @@ export const fetchTestWithQuestions = async (testId: string): Promise<{ test: Te
     
     if (questionError) {
       console.error('Ошибка при загрузке вопросов:', questionError);
-      return { test: testData, questions: [] };
+      return testData; // Return test without questions
     }
     
     console.log(`Загружен тест "${testData.title}" с ${questionData?.length || 0} вопросами`);
-    return { 
-      test: testData, 
-      questions: questionData as Question[] || [] 
+    
+    // Attach questions to the test object
+    return {
+      ...testData,
+      questions: questionData || []
     };
   } catch (err) {
     console.error('Непредвиденная ошибка при загрузке теста с вопросами:', err);
-    return { test: null, questions: [] };
+    throw err;
   }
 };
 
-export const saveTestResult = async (resultData: {
+export const saveTestResult = async (
   user_id: string,
   test_id: string,
   score: number,
   total_questions: number,
-  answers?: Record<string, string>,
-  is_perfect_score?: boolean
-}): Promise<{ success: boolean, error?: any, data?: any }> => {
+  is_perfect_score: boolean = false
+): Promise<boolean> => {
   try {
-    console.log('Сохранение результатов теста:', resultData);
+    console.log('Сохранение результатов теста:', {
+      user_id,
+      test_id,
+      score,
+      total_questions,
+      is_perfect_score
+    });
     
     // Проверяем обязательные поля
-    if (!resultData.user_id || !resultData.test_id) {
+    if (!user_id || !test_id) {
       console.error('Отсутствуют обязательные поля (user_id или test_id)');
-      return { 
-        success: false, 
-        error: 'Отсутствуют обязательные поля' 
-      };
+      return false;
     }
     
     // Базовые данные для вставки
-    const baseData = {
-      user_id: resultData.user_id,
-      test_id: resultData.test_id,
-      score: resultData.score || 0,
-      total_questions: resultData.total_questions || 0,
-      is_perfect_score: resultData.is_perfect_score || false
+    const insertData = {
+      user_id,
+      test_id,
+      score,
+      total_questions,
+      is_perfect_score
     };
-    
-    // Добавляем answers, если они есть
-    const insertData = resultData.answers 
-      ? { ...baseData, answers: resultData.answers }
-      : baseData;
     
     // Вставляем запись в таблицу test_results
     const { data, error } = await supabase
@@ -236,56 +242,62 @@ export const saveTestResult = async (resultData: {
         const { data: retryData, error: retryError } = await supabase
           .from('test_results')
           .insert([{
-            user_id: resultData.user_id,
-            test_id: resultData.test_id,
-            score: resultData.score || 0,
-            total_questions: resultData.total_questions || 0,
-            answers: resultData.answers
+            user_id,
+            test_id,
+            score,
+            total_questions
           }])
           .select();
         
         if (retryError) {
           console.error('Повторная ошибка при сохранении результатов:', retryError);
-          return { success: false, error: retryError };
+          return false;
         }
         
         console.log('Результаты успешно сохранены (без is_perfect_score):', retryData);
-        return { success: true, data: retryData };
+        
+        // Обновляем счетчик пройденных тестов в профиле пользователя
+        await updateUserTestCount(user_id);
+        return true;
       }
       
-      return { success: false, error };
+      return false;
     }
     
     console.log('Результаты успешно сохранены:', data);
     
     // Обновляем счетчик пройденных тестов в профиле пользователя
-    try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('tests_completed')
-        .eq('id', resultData.user_id)
-        .single();
-      
-      if (!profileError && profileData) {
-        const testsCompleted = (profileData.tests_completed || 0) + 1;
-        
-        await supabase
-          .from('profiles')
-          .update({ tests_completed: testsCompleted })
-          .eq('id', resultData.user_id);
-        
-        console.log(`Обновлен счетчик пройденных тестов: ${testsCompleted}`);
-      }
-    } catch (err) {
-      console.error('Ошибка при обновлении профиля:', err);
-    }
-    
-    return { success: true, data };
+    await updateUserTestCount(user_id);
+    return true;
   } catch (err) {
     console.error('Непредвиденная ошибка при сохранении результатов теста:', err);
-    return { success: false, error: err };
+    return false;
   }
 };
+
+// Helper function to update user test count
+async function updateUserTestCount(userId: string): Promise<void> {
+  try {
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('tests_completed')
+      .eq('id', userId)
+      .single();
+    
+    if (!profileError && profileData) {
+      const testsCompleted = (profileData.tests_completed || 0) + 1;
+      
+      await supabase
+        .from('profiles')
+        .update({ tests_completed: testsCompleted })
+        .eq('id', userId);
+      
+      console.log(`Обновлен счетчик пройденных тестов: ${testsCompleted}`);
+    }
+  } catch (err) {
+    console.error('Ошибка при обновлении профиля:', err);
+  }
+}
 
 export const createOrUpdateProfile = async (profileData: Profile): Promise<{ success: boolean, data?: Profile | null, error?: any }> => {
   try {
@@ -369,7 +381,7 @@ export const fetchCourses = async (): Promise<Course[]> => {
   }
 };
 
-export const fetchCourseWithLessons = async (courseId: string): Promise<{ course: Course | null, lessons: Lesson[] }> => {
+export const fetchCourseWithLessons = async (courseId: string): Promise<Course> => {
   try {
     // Get course details
     const { data: courseData, error: courseError } = await supabase
@@ -380,28 +392,28 @@ export const fetchCourseWithLessons = async (courseId: string): Promise<{ course
     
     if (courseError) {
       console.error('Error fetching course:', courseError);
-      return { course: null, lessons: [] };
+      throw new Error('Error fetching course');
     }
     
     // Get lessons for this course
     const { data: lessonsData, error: lessonsError } = await supabase
       .from('lessons')
-      .select('*')
+      .select('*, practice_tests(*)')
       .eq('course_id', courseId)
       .order('order_index', { ascending: true });
     
     if (lessonsError) {
       console.error('Error fetching lessons:', lessonsError);
-      return { course: courseData, lessons: [] };
+      return courseData; // Return course without lessons
     }
     
     return { 
-      course: courseData, 
+      ...courseData, 
       lessons: lessonsData || [] 
     };
   } catch (error) {
     console.error('Unexpected error fetching course with lessons:', error);
-    return { course: null, lessons: [] };
+    throw error;
   }
 };
 
@@ -426,12 +438,32 @@ export const fetchCourseProgress = async (userId: string, courseId: string): Pro
   }
 };
 
-export const updateCourseProgress = async (progressData: any): Promise<{ success: boolean, data?: any }> => {
+export const updateCourseProgress = async (
+  user_id: string,
+  course_id: string,
+  last_lesson_id: string,
+  lessons_completed: number = 0,
+  is_completed: boolean = false,
+  update_completed_lessons: boolean = false,
+  completed_lessons: string[] = []
+): Promise<{ success: boolean, data?: any }> => {
   try {
-    const { user_id, course_id } = progressData;
-    
     if (!user_id || !course_id) {
       return { success: false };
+    }
+    
+    // Prepare progress data
+    const progressData: any = {
+      user_id,
+      course_id,
+      last_lesson_id,
+      lessons_completed,
+      is_completed
+    };
+    
+    // Add completed_lessons if updating them
+    if (update_completed_lessons && completed_lessons.length > 0) {
+      progressData.completed_lessons = JSON.stringify(completed_lessons);
     }
     
     // Check if progress record exists
@@ -473,22 +505,24 @@ export const updateCourseProgress = async (progressData: any): Promise<{ success
       result = { success: true, data };
     }
     
-    // Update user profile with completed courses count
-    try {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('courses_completed')
-        .eq('id', user_id)
-        .single();
-      
-      if (profileData && progressData.completed) {
-        await supabase
+    // Update user profile with completed courses count if the course is completed
+    if (is_completed) {
+      try {
+        const { data: profileData } = await supabase
           .from('profiles')
-          .update({ courses_completed: (profileData.courses_completed || 0) + 1 })
-          .eq('id', user_id);
+          .select('courses_completed')
+          .eq('id', user_id)
+          .single();
+        
+        if (profileData) {
+          await supabase
+            .from('profiles')
+            .update({ courses_completed: (profileData.courses_completed || 0) + 1 })
+            .eq('id', user_id);
+        }
+      } catch (err) {
+        console.error('Error updating profile courses count:', err);
       }
-    } catch (err) {
-      console.error('Error updating profile courses count:', err);
     }
     
     return result;
