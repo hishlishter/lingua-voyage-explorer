@@ -37,13 +37,23 @@ const Tests = () => {
   // Process test results to identify completed tests (with perfect score)
   useEffect(() => {
     if (testResults && tests) {
-      const perfectResults = testResults.filter(result => {
+      // Определяем ID тестов, которые пройдены успешно
+      // Тест считается пройденным, если:
+      // 1. У него есть поле is_perfect_score = true
+      // 2. ИЛИ количество правильных ответов равно общему количеству вопросов
+      const completedIds = testResults.filter(result => {
+        // Проверка на наличие поля is_perfect_score
+        if (result.is_perfect_score === true) {
+          return true;
+        }
+        
+        // Fallback на проверку по подсчету баллов
         const test = tests.find(t => t.id === result.test_id);
         return test && result.score === result.total_questions;
-      });
+      }).map(result => result.test_id);
       
-      const completedIds = perfectResults.map(result => result.test_id);
       setCompletedTestIds(completedIds);
+      console.log('Пройденные тесты:', completedIds);
     }
   }, [testResults, tests]);
   

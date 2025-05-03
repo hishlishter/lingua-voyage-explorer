@@ -58,6 +58,11 @@ const TestDetail = () => {
       const isPerfectScore = result.score === result.total_questions;
       setIsPerfectScore(isPerfectScore);
       
+      console.log('Сохраняем результат теста:', {
+        ...result,
+        isPerfectScore
+      });
+      
       const success = await saveTestResult(
         result.user_id,
         result.test_id,
@@ -67,6 +72,7 @@ const TestDetail = () => {
       );
       
       if (!success) {
+        console.error('Не удалось сохранить результаты теста');
         throw new Error('Не удалось сохранить результаты');
       }
       
@@ -75,7 +81,8 @@ const TestDetail = () => {
     onSuccess: () => {
       toast.success('Результаты сохранены');
       // Инвалидируем кэши запросов для обновления данных
-      queryClient.invalidateQueries({ queryKey: ['test-results'] });
+      queryClient.invalidateQueries({ queryKey: ['testResults'] });
+      queryClient.invalidateQueries({ queryKey: ['testResults', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
     onError: (error) => {
@@ -114,6 +121,13 @@ const TestDetail = () => {
       
       // Сохраняем результаты
       if (user && test && id) {
+        console.log('Отправляем результаты на сохранение:', {
+          user_id: user.id,
+          test_id: id,
+          score: correctAnswers,
+          total_questions: test.questions?.length || 0
+        });
+        
         saveResultMutation.mutate({
           user_id: user.id,
           test_id: id,
