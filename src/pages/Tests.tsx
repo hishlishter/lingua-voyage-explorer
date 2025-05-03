@@ -8,7 +8,7 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Card, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, CheckCircle, Clock, FileText } from 'lucide-react';
+import { Award, CheckCircle, Clock, FileText, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 
@@ -16,8 +16,15 @@ const Tests = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [completedTestIds, setCompletedTestIds] = useState<string[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const { data: tests, isLoading, error } = useQuery({
+  // Добавляем параметр refetch для обновления данных
+  const { 
+    data: tests, 
+    isLoading, 
+    error, 
+    refetch: refetchTests 
+  } = useQuery({
     queryKey: ['tests'],
     queryFn: fetchTests,
     staleTime: 300000, // 5 минут кэширования
@@ -26,13 +33,27 @@ const Tests = () => {
   });
   
   // Fetch test results if user is logged in
-  const { data: testResults } = useQuery({
+  const { data: testResults, refetch: refetchResults } = useQuery({
     queryKey: ['testResults', user?.id],
     queryFn: () => fetchTestResults(user?.id || ''),
     enabled: !!user?.id,
     staleTime: 300000,
     retry: 2
   });
+
+  // Функция для обновления данных
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refetchTests(), refetchResults()]);
+      toast.success('Данные обновлены');
+    } catch (err) {
+      console.error('Ошибка при обновлении данных:', err);
+      toast.error('Ошибка при обновлении данных');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   
   // Process test results to identify completed tests (with perfect score)
   useEffect(() => {
@@ -62,10 +83,46 @@ const Tests = () => {
     if (error) {
       console.error('Ошибка загрузки тестов:', error);
       toast.error('Не удалось загрузить тесты', {
-        description: 'Пожалуйста, попробуйте обновить страницу позже'
+        description: 'Пожалуйста, проверьте подключение к интернету и попробуйте снова'
       });
     }
   }, [error]);
+  
+  // Функция для проверки типа ошибки
+  const isNetworkError = (error: any) => {
+    return error?.message?.includes('Failed to fetch') || 
+           error?.details?.includes('Failed to fetch');
+  };
+
+  // Компонент для отображения сетевой ошибки
+  const NetworkErrorMessage = () => (
+    <div className="text-center py-12 space-y-6">
+      <div className="flex justify-center">
+        <AlertTriangle size={64} className="text-amber-500" />
+      </div>
+      <h3 className="text-2xl font-bold text-gray-800">Проблема с подключением</h3>
+      <p className="text-gray-600 max-w-md mx-auto">
+        Не удается соединиться с сервером. Проверьте ваше подключение к интернету и попробуйте снова.
+      </p>
+      <Button 
+        onClick={handleRefresh} 
+        disabled={isRefreshing}
+        className="mt-4"
+      >
+        {isRefreshing ? (
+          <>
+            <RefreshCw size={16} className="mr-2 animate-spin" />
+            Обновление...
+          </>
+        ) : (
+          <>
+            <RefreshCw size={16} className="mr-2" />
+            Попробовать снова
+          </>
+        )}
+      </Button>
+    </div>
+  );
   
   return (
     <div className="flex min-h-screen bg-background">
@@ -87,11 +144,29 @@ const Tests = () => {
             </div>
             
             {isLoading ? (
-              <div className="text-center py-12">Загрузка тестов...</div>
-            ) : error ? (
-              <div className="text-center py-12 text-red-500">
-                Ошибка загрузки тестов. Пожалуйста, попробуйте позже.
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin text-primary mb-4">
+                  <RefreshCw size={40} />
+                </div>
+                <p>Загрузка тестов...</p>
               </div>
+            ) : error ? (
+              isNetworkError(error) ? (
+                <NetworkErrorMessage />
+              ) : (
+                <div className="text-center py-12 text-red-500">
+                  <AlertTriangle size={40} className="mx-auto mb-4" />
+                  <p>Ошибка загрузки тестов. Пожалуйста, попробуйте позже.</p>
+                  <Button 
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    {isRefreshing ? 'Обновление...' : 'Обновить'}
+                  </Button>
+                </div>
+              )
             ) : tests && tests.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tests.map((test) => {
@@ -138,7 +213,20 @@ const Tests = () => {
               </div>
             ) : (
               <div className="text-center py-12">
-                Пока нет доступных тестов. Пожалуйста, зайдите позже.
+                <p className="mb-4">Пока нет доступных тестов. Пожалуйста, зайдите позже.</p>
+                <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline">
+                  {isRefreshing ? (
+                    <>
+                      <RefreshCw size={16} className="mr-2 animate-spin" />
+                      Обновление...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={16} className="mr-2" />
+                      Обновить
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </div>
