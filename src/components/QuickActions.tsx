@@ -52,10 +52,10 @@ const QuickActions = () => {
           to="/dictionary"
         />
         <QuickActionCard 
-          title="Курсы" 
+          title="Уроки" 
           subtitle="Начни обучение" 
-          icon="📁"
-          to="/courses"
+          icon="📝"
+          to="/lessons"
         />
       </div>
     </div>

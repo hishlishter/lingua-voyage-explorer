@@ -13,8 +13,6 @@ import Tests from "./pages/Tests";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import TestDetail from "./pages/TestDetail";
-import Courses from "./pages/Courses";
-import CourseDetail from "./pages/CourseDetail";
 import { AuthProvider } from "./context/AuthContext";
 import { useEffect } from "react";
 import { initializeGrammarLessons } from "./lib/supabase-lessons";
@@ -46,8 +44,6 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/courses" element={<Courses />} />
-      <Route path="/courses/:id" element={<CourseDetail />} />
       <Route path="/lessons" element={<Lessons />} /> 
       <Route path="/lessons/:id" element={<LessonDetail />} /> 
       <Route path="/dictionary" element={<Dictionary />} />
