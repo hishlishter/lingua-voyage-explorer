@@ -88,7 +88,12 @@ const Auth = () => {
         )}
 
         <div className="relative backdrop-blur-sm bg-white/30 p-6 rounded-2xl shadow-xl border border-white/20">
-          <h1 className="text-3xl font-bold text-center mb-6 text-purple-800 font-display">Русский для иностранцев</h1>
+          <div className="text-center mb-6">
+            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-500 font-display">
+              Mar<span className="text-6xl">GO</span>
+            </h1>
+            <div className="h-1 w-20 mx-auto mt-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"></div>
+          </div>
           
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/40 rounded-xl p-1">

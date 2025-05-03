@@ -35,7 +35,7 @@ const Sidebar = () => {
       <div className="flex justify-center mb-8">
         <Link to="/" className="flex flex-col items-center">
           <div className="relative">
-            <h1 className="text-4xl font-display font-bold mb-1">Margo</h1>
+            <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-500 text-4xl font-display font-bold mb-1">Mar<span className="text-5xl">GO</span></h1>
             <span className="absolute -top-4 -left-6 text-xl">🌸</span>
             <span className="absolute -top-4 -right-6 text-xl">🌸</span>
           </div>
