@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, createOrUpdateProfile, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -122,7 +123,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: displayName,
         email: user.email || '',
         tests_completed: 0,
-        courses_completed: 0
+        courses_completed: 0,
+        lessons_completed: 0 // Added this line to fix the error
       };
       
       console.log('Creating new profile for user:', profileData);

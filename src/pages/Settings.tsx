@@ -124,6 +124,7 @@ const Settings = () => {
         email: user.email || '',
         tests_completed: profile?.tests_completed || 0,
         courses_completed: profile?.courses_completed || 0,
+        lessons_completed: profile?.lessons_completed || 0, // Added this line to fix the error
         avatar_url: profile?.avatar_url
       };
       

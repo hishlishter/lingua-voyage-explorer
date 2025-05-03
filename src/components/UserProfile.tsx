@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -33,13 +32,15 @@ const UserProfile: React.FC<UserProfileProps> = ({
     name: user.user_metadata?.name || 'Пользователь',
     email: user.email || '',
     tests_completed: 0,
-    courses_completed: 0
+    courses_completed: 0,
+    lessons_completed: 0 // Added this line to fix the error
   } : {
     id: 'guest',
     name: 'Гость',
     email: '',
     tests_completed: 0,
-    courses_completed: 0
+    courses_completed: 0,
+    lessons_completed: 0 // Added this line to fix the error
   };
 
   const [localProfile, setLocalProfile] = useState<Profile | null>(null);
