@@ -12,7 +12,6 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signInWithTestAccount: () => Promise<void>;
   supabaseInitialized: boolean;
   ensureUserProfile: (user: User, name?: string) => Promise<Profile | null>;
 };
@@ -142,14 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    if (email === "test@example.com" && password === "password123") {
-      return signInWithTestAccount();
-    }
-
     if (!supabaseInitialized) {
       console.log('Attempting to sign in with Supabase not properly configured');
       toast.warning('Supabase не настроен', {
-        description: 'Используйте тестовый аккаунт для входа'
+        description: 'Пожалуйста, настройте подключение к Supabase'
       });
       return;
     }
@@ -291,64 +286,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signInWithTestAccount = async () => {
-    try {
-      setLoading(true);
-      console.log("Signing in with test account...");
-      
-      // Use a real UUID format for test user to avoid foreign key constraint issues
-      const testUser = {
-        id: '00000000-0000-0000-0000-000000000001', // Valid UUID format
-        email: 'test@example.com',
-        user_metadata: {
-          name: 'Test User'
-        },
-        app_metadata: {},
-        aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        role: '',
-        updated_at: new Date().toISOString(),
-        confirmed_at: new Date().toISOString(),
-        last_sign_in_at: new Date().toISOString(),
-        phone: '',
-        factors: null,
-        identities: []
-      } as User;
-      
-      setUser(testUser);
-      
-      const mockSession = {
-        user: testUser,
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        expires_in: 3600,
-        token_type: 'bearer'
-      } as Session;
-      
-      setSession(mockSession);
-      
-      // Create test profile
-      const testProfile: Profile = {
-        id: testUser.id,
-        name: 'Test User',
-        email: 'test@example.com',
-        tests_completed: 5,
-        courses_completed: 3
-      };
-      
-      localStorage.setItem(`profile_${testUser.id}`, JSON.stringify(testProfile));
-      
-      toast.success('Вход выполнен с тестовым аккаунтом');
-      navigate('/');
-    } catch (error) {
-      console.error('Test account sign in error:', error);
-      toast.error('Ошибка входа с тестовым аккаунтом');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <AuthContext.Provider value={{ 
       session, 
@@ -357,7 +294,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signIn, 
       signUp, 
       signOut,
-      signInWithTestAccount,
       supabaseInitialized,
       ensureUserProfile
     }}>

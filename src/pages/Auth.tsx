@@ -11,7 +11,7 @@ import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Auth = () => {
-  const { signIn, signUp, signInWithTestAccount, supabaseInitialized, user } = useAuth();
+  const { signIn, signUp, supabaseInitialized, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -29,7 +29,7 @@ const Auth = () => {
   useEffect(() => {
     if (!supabaseInitialized) {
       toast.warning('Supabase не настроен', {
-        description: 'Используйте тестовый аккаунт для входа',
+        description: 'Проверьте подключение к Supabase',
         duration: 6000,
       });
     }
@@ -74,7 +74,7 @@ const Auth = () => {
                   <h3 className="font-semibold">Supabase не настроен</h3>
                   <p className="text-sm">
                     Приложение работает в режиме разработки без настроенного Supabase.
-                    Используйте тестовую учетную запись для входа.
+                    Пожалуйста, настройте подключение к Supabase.
                   </p>
                 </div>
               </div>
@@ -122,17 +122,12 @@ const Auth = () => {
                         disabled={isLoading}
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={isLoading || (!supabaseInitialized && email !== "test@example.com")}>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? 'Загрузка...' : 'Войти'}
                     </Button>
                   </div>
                 </form>
               </CardContent>
-              <CardFooter className="flex flex-col">
-                <Button variant="secondary" onClick={signInWithTestAccount} className="w-full">
-                  Войти с тестовым аккаунтом
-                </Button>
-              </CardFooter>
             </Card>
           </TabsContent>
           
