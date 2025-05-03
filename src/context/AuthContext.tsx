@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, createOrUpdateProfile, Profile } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -30,19 +29,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setLoading(true);
         
-        // Проверяем URL и ключ Supabase перед тем, как пытаться использовать API
-        const url = import.meta.env.VITE_SUPABASE_URL;
-        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        // Since we've hardcoded the credentials in supabase.ts, we can skip the env check
+        // and focus on testing if the Supabase client is initialized correctly
         
-        if (!url || url === 'https://your-supabase-url.supabase.co' || 
-            !key || key === 'your-anon-key') {
-          console.warn('Supabase credentials are not properly configured.');
-          setSupabaseInitialized(false);
-          setLoading(false);
-          return;
-        }
-        
-        // Check if Supabase is initialized correctly
         try {
           const checkResult = await supabase.auth.getSession();
           console.log('Supabase initialization check:', checkResult);
@@ -53,14 +42,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (error) {
             console.error('Error getting session:', error);
             setSupabaseInitialized(false);
+            toast.error('Ошибка подключения к Supabase', {
+              description: 'Проверьте консоль для получения деталей ошибки'
+            });
           } else {
             setSupabaseInitialized(true);
             setSession(data.session);
             setUser(data.session?.user ?? null);
+            console.log('Supabase initialized successfully');
           }
         } catch (error) {
           console.error('Unexpected error during Supabase initialization:', error);
           setSupabaseInitialized(false);
+          toast.error('Ошибка инициализации Supabase', {
+            description: 'Проверьте консоль для получения деталей ошибки'
+          });
         }
       } catch (error) {
         console.error('Unexpected error during initialization:', error);
