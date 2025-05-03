@@ -62,16 +62,17 @@ const Tests = () => {
       // Тест считается пройденным, если:
       // 1. У него есть поле is_perfect_score = true
       // 2. ИЛИ количество правильных ответов равно общему количеству вопросов
-      const completedIds = testResults.filter(result => {
-        // Проверка на наличие поля is_perfect_score
-        if (result.is_perfect_score === true) {
-          return true;
-        }
-        
-        // Fallback на проверку по подсчету баллов
-        const test = tests.find(t => t.id === result.test_id);
-        return test && result.score === result.total_questions;
-      }).map(result => result.test_id);
+      const completedIds = testResults
+        .filter(result => {
+          // Проверка на наличие поля is_perfect_score
+          if (result.is_perfect_score === true) {
+            return true;
+          }
+          
+          // Fallback на проверку по подсчету баллов
+          return result.score === result.total_questions;
+        })
+        .map(result => result.test_id);
       
       setCompletedTestIds(completedIds);
       console.log('Пройденные тесты:', completedIds);
@@ -133,7 +134,27 @@ const Tests = () => {
         
         <div className="flex-1 p-6">
           <div className="max-w-5xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Тесты</h1>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">Тесты</h1>
+              <Button 
+                onClick={handleRefresh} 
+                disabled={isRefreshing}
+                variant="outline"
+                size="sm"
+              >
+                {isRefreshing ? (
+                  <>
+                    <RefreshCw size={16} className="mr-2 animate-spin" />
+                    Обновление...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} className="mr-2" />
+                    Обновить
+                  </>
+                )}
+              </Button>
+            </div>
             
             <div className="mb-8">
               <p className="text-muted-foreground">
@@ -176,7 +197,7 @@ const Tests = () => {
                     <Card 
                       key={test.id} 
                       className={`hover:shadow-md transition-shadow cursor-pointer ${
-                        isCompleted ? 'border-green-200' : ''
+                        isCompleted ? 'border-green-200 bg-green-50/30' : ''
                       }`}
                       onClick={() => navigate(`/tests/${test.id}`)}
                     >

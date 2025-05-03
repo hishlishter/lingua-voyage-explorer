@@ -18,7 +18,8 @@ const Index = () => {
     name: user.user_metadata?.name || 'Пользователь',
     email: user.email || '',
     tests_completed: 0,
-    courses_completed: 0
+    courses_completed: 0,
+    lessons_completed: 0 // Добавлено для полноты данных
   } as Profile : null;
   
   // Try to get profile from localStorage first
@@ -81,6 +82,47 @@ const Index = () => {
     placeholderData: cachedProfile || fallbackProfile,
     refetchInterval: false
   });
+
+  // Предварительная загрузка данных для тестов и уроков, чтобы они были доступны в Dashboard
+  React.useEffect(() => {
+    if (user?.id) {
+      // Предзагрузка результатов тестов
+      queryClient.prefetchQuery({
+        queryKey: ['testResultsAll', user.id],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from('test_results')
+            .select('*')
+            .eq('user_id', user.id);
+          
+          if (error) {
+            console.error('Error prefetching test results:', error);
+            return [];
+          }
+          
+          return data || [];
+        }
+      });
+      
+      // Предзагрузка прогресса по урокам
+      queryClient.prefetchQuery({
+        queryKey: ['lessonProgressAll', user.id],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from('lesson_progress')
+            .select('*')
+            .eq('user_id', user.id);
+          
+          if (error) {
+            console.error('Error prefetching lesson progress:', error);
+            return [];
+          }
+          
+          return data || [];
+        }
+      });
+    }
+  }, [user?.id, queryClient]);
 
   const handleRetry = async () => {
     if (!user) return;

@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 interface ProgressChartProps {
   title: string;
   year: number;
-  className?: string; // Added className prop as optional
+  className?: string;
 }
 
 interface MonthlyScore {
@@ -59,24 +59,26 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
   const [year, setYear] = useState(initialYear);
   const { user } = useAuth();
   
+  // Получение всех результатов тестов, не только для lesson_tests, но и для обычных тестов
   const { data: testResults, isLoading: isLoadingTests } = useQuery({
-    queryKey: ['test-results', user?.id, year],
+    queryKey: ['all-test-results', user?.id, year],
     queryFn: async () => {
       if (!user) return [];
       
       try {
-        // Сначала получаем все результаты тестов
-        const { data, error } = await supabase
+        // Получаем результаты тестов
+        const { data: testData, error: testError } = await supabase
           .from('test_results')
-          .select('*');
+          .select('*')
+          .eq('user_id', user.id);
         
-        if (error) {
-          console.error('Error fetching test results:', error);
+        if (testError) {
+          console.error('Error fetching test results:', testError);
           return [];
         }
         
-        // Затем фильтруем результаты по году вручную
-        const filteredByYear = data?.filter(result => {
+        // Фильтруем по году
+        const filteredTestResults = testData?.filter(result => {
           if (!result.created_at) return false;
           
           try {
@@ -86,9 +88,10 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
             console.error('Ошибка при обработке даты результата теста:', e);
             return false;
           }
-        });
+        }) || [];
         
-        return filteredByYear || [];
+        console.log('Filtered test results:', filteredTestResults);
+        return filteredTestResults;
       } catch (error) {
         console.error('Error fetching test results:', error);
         return [];
@@ -108,7 +111,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
       if (!user) return [];
       
       try {
-        // Получаем данные о прогрессе по урокам без фильтрации по дате
+        // Получаем данные о прогрессе по урокам
         const { data, error } = await supabase
           .from('lesson_progress')
           .select('*')
@@ -119,7 +122,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
           return [];
         }
         
-        // Фильтруем результаты по году вручную
+        // Фильтруем результаты по году
         const filteredByYear = data?.filter(result => {
           if (!result.created_at) return false;
           
@@ -132,6 +135,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
           }
         });
         
+        console.log('Filtered lesson results:', filteredByYear);
         return filteredByYear || [];
       } catch (error) {
         console.error('Error fetching lesson progress:', error);
@@ -148,7 +152,10 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
   
   const [chartData, setChartData] = useState<MonthlyScore[]>(generateEmptyData());
   
+  // Обновление данных для графика при изменении testResults или lessonResults
   useEffect(() => {
+    console.log('Processing chart data with:', { testResults, lessonResults });
+    
     const monthNames = [
       'Янв', 'Фев', 'Март', 'Апр', 'Май', 'Июнь',
       'Июль', 'Авг', 'Сент', 'Окт', 'Нояб', 'Дек'
@@ -160,7 +167,9 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
     const monthlyTestScores: Record<number, number> = {};
     const monthlyLessonScores: Record<number, number> = {};
     
+    // Обработка результатов тестов
     if (testResults && testResults.length > 0) {
+      console.log(`Processing ${testResults.length} test results`);
       testResults.forEach(result => {
         if (!result.created_at) return;
         
@@ -172,9 +181,10 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
             monthlyTestScores[month] = 0;
           }
           
-          // Считаем тест полностью пройденным только если is_perfect_score равно true
-          if (result.is_perfect_score === true) {
+          // Считаем тест полностью пройденным если is_perfect_score равно true или score равен total_questions
+          if (result.is_perfect_score === true || (result.score && result.total_questions && result.score === result.total_questions)) {
             monthlyTestScores[month] += 1;
+            console.log(`Added test for month ${month}, score now: ${monthlyTestScores[month]}`);
           }
         } catch (e) {
           console.error('Ошибка при обработке даты результата теста:', e);
@@ -182,7 +192,9 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
       });
     }
     
+    // Обработка прогресса по урокам
     if (lessonResults && lessonResults.length > 0) {
+      console.log(`Processing ${lessonResults.length} lesson results`);
       lessonResults.forEach(result => {
         if (!result.created_at) return;
         
@@ -194,13 +206,18 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
             monthlyLessonScores[month] = 0;
           }
           
-          monthlyLessonScores[month] += 1;
+          // Считаем урок пройденным, если есть отметка о его завершении (is_completed)
+          if (result.is_completed === true) {
+            monthlyLessonScores[month] += 1;
+            console.log(`Added lesson for month ${month}, score now: ${monthlyLessonScores[month]}`);
+          }
         } catch (e) {
           console.error('Ошибка при обработке даты прогресса урока:', e);
         }
       });
     }
     
+    // Формируем данные для графика
     const data = monthNames.map((name, index) => {
       const testCount = monthlyTestScores[index] || 0;
       const lessonCount = monthlyLessonScores[index] || 0;
@@ -213,6 +230,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
       };
     });
     
+    console.log('Final chart data:', data);
     setChartData(data);
   }, [testResults, lessonResults, year]);
   
@@ -229,6 +247,12 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
       setYear(year + 1);
     }
   };
+
+  // Расчет максимального значения для Y оси, чтобы график всегда выглядел хорошо
+  const maxTestValue = Math.max(...chartData.map(d => d.tests), 1);
+  const maxLessonValue = Math.max(...chartData.map(d => d.lessons), 1);
+  const maxValue = Math.max(maxTestValue, maxLessonValue);
+  const yDomain = [0, maxValue > 0 ? Math.max(5, maxValue + 2) : 5];
 
   return (
     <Card className={`shadow-sm border-none overflow-hidden ${className || ''}`}>
@@ -267,7 +291,10 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
                 tickLine={false}
                 tick={{ fontSize: 10, fill: '#888' }}
               />
-              <YAxis hide domain={[0, 10]} />
+              <YAxis 
+                hide 
+                domain={yDomain} 
+              />
               <Tooltip content={<CustomTooltip />} />
               <Legend 
                 payload={[
@@ -286,7 +313,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
                 dot={(props) => {
                   const { cx, cy, payload } = props;
                   
-                  if (payload && payload.isCurrentMonth) {
+                  if ((payload && payload.tests > 0) || (payload && payload.isCurrentMonth)) {
                     return (
                       <g>
                         <circle 
@@ -297,16 +324,18 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
                           stroke="#fff" 
                           strokeWidth={2}
                         />
-                        <text 
-                          x={cx} 
-                          y={cy - 15} 
-                          textAnchor="middle" 
-                          fill="#333" 
-                          fontSize="12" 
-                          fontWeight="bold"
-                        >
-                          {payload.tests}
-                        </text>
+                        {payload.tests > 0 && (
+                          <text 
+                            x={cx} 
+                            y={cy - 15} 
+                            textAnchor="middle" 
+                            fill="#333" 
+                            fontSize="12" 
+                            fontWeight="bold"
+                          >
+                            {payload.tests}
+                          </text>
+                        )}
                       </g>
                     );
                   }
@@ -324,7 +353,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
                 dot={(props) => {
                   const { cx, cy, payload } = props;
                   
-                  if (payload && payload.isCurrentMonth) {
+                  if ((payload && payload.lessons > 0) || (payload && payload.isCurrentMonth)) {
                     return (
                       <g>
                         <circle 
@@ -335,16 +364,18 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
                           stroke="#fff" 
                           strokeWidth={2}
                         />
-                        <text 
-                          x={cx} 
-                          y={cy - 30} 
-                          textAnchor="middle" 
-                          fill="#333" 
-                          fontSize="12" 
-                          fontWeight="bold"
-                        >
-                          {payload.lessons}
-                        </text>
+                        {payload.lessons > 0 && (
+                          <text 
+                            x={cx} 
+                            y={cy - 30} 
+                            textAnchor="middle" 
+                            fill="#333" 
+                            fontSize="12" 
+                            fontWeight="bold"
+                          >
+                            {payload.lessons}
+                          </text>
+                        )}
                       </g>
                     );
                   }
