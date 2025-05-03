@@ -3,19 +3,14 @@ import React, { useEffect } from 'react';
 import UserProfile from '@/components/UserProfile';
 import ProgressChart from '@/components/ProgressChart';
 import { Profile } from '@/lib/supabase';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCourses, fetchCourseProgress, fetchTestResults } from '@/lib/supabase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, BookOpen } from 'lucide-react';
 
 interface DashboardProps {
   profile: Profile;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
-  const isMobile = useIsMobile();
-  
   // Получаем данные о курсах
   const { data: courses } = useQuery({
     queryKey: ['courses'],
@@ -103,34 +98,12 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
         totalCompletedTests={totalCompletedTests}
       />
       
-      <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
+      <div className="w-full">
         <ProgressChart 
           title="Прогресс обучения" 
           year={new Date().getFullYear()} 
+          className="w-full"
         />
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" />
-              Ваши достижения
-            </CardTitle>
-            <CardDescription>
-              Информация о вашем прогрессе в обучении за сегодня
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b pb-2">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-pink-500" />
-                  <span className="text-sm font-medium">Пройдено уроков</span>
-                </div>
-                <span className="text-lg font-bold">{totalCompletedLessons}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </>
   );
