@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -171,8 +172,8 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ title, year: initialYear,
             monthlyTestScores[month] = 0;
           }
           
-          // Считаем тест полностью пройденным, если это совершенный результат
-          if (result.is_perfect_score) {
+          // Считаем тест полностью пройденным только если is_perfect_score равно true
+          if (result.is_perfect_score === true) {
             monthlyTestScores[month] += 1;
           }
         } catch (e) {

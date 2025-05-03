@@ -77,9 +77,12 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
     }, 0);
   }, [courseProgressData]);
   
-  // Подсчитываем общее количество пройденных тестов
+  // Подсчитываем общее количество пройденных тестов (где is_perfect_score === true)
   const totalCompletedTests = React.useMemo(() => {
-    return testResults?.filter(result => result.is_perfect_score)?.length || profile.tests_completed || 0;
+    if (!testResults) return profile.tests_completed || 0;
+    
+    const perfectScoreTests = testResults.filter(result => result.is_perfect_score === true);
+    return perfectScoreTests.length || profile.tests_completed || 0;
   }, [testResults, profile.tests_completed]);
 
   // Логирование для отладки
