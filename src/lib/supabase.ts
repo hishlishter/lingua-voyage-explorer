@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
@@ -24,6 +25,7 @@ export interface Test {
   time_limit: number;
   total_questions: number;
   created_at?: string;
+  questions?: Question[]; // Добавляем это поле, которое требуется в TestDetail.tsx
 }
 
 export interface Question {
@@ -49,6 +51,7 @@ export interface Course {
   level: string;
   lessons_count: number;
   duration?: string;
+  lessons?: Lesson[]; // Добавляем это поле, которое требуется в CourseDetail.tsx
 }
 
 export interface Lesson {
@@ -57,7 +60,7 @@ export interface Lesson {
   title: string;
   content: string;
   order_index: number;
-  practice_tests?: PracticeTest[];
+  practice_tests?: PracticeTest[]; // Добавляем это поле, которое требуется в CourseDetail.tsx
 }
 
 export interface PracticeTest {

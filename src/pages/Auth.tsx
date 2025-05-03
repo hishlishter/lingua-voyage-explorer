@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import '@/styles/gradients.css';
 
@@ -30,14 +30,19 @@ const Auth = () => {
   useEffect(() => {
     if (!supabaseInitialized) {
       toast.warning('Supabase не настроен', {
-        description: 'Проверьте подключение к Supabase',
-        duration: 6000,
+        description: 'Необходимо настроить переменные окружения для Supabase',
+        duration: 8000,
       });
     }
   }, [supabaseInitialized]);
   
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast.error('Пожалуйста, заполните все поля');
+      return;
+    }
+    
     setIsLoading(true);
     try {
       console.log('Attempting to sign in with email:', email);
@@ -51,6 +56,16 @@ const Auth = () => {
   
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast.error('Пожалуйста, заполните все поля');
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast.error('Пароль должен быть не менее 6 символов');
+      return;
+    }
+    
     setIsLoading(true);
     try {
       console.log('Attempting to sign up with email:', email);
@@ -79,7 +94,7 @@ const Auth = () => {
                   <h3 className="font-semibold">Supabase не настроен</h3>
                   <p className="text-sm">
                     Приложение работает в режиме разработки без настроенного Supabase.
-                    Пожалуйста, настройте подключение к Supabase.
+                    Пожалуйста, настройте переменные окружения VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY.
                   </p>
                 </div>
               </div>
@@ -139,10 +154,19 @@ const Auth = () => {
                     <Button 
                       type="submit" 
                       className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium py-2.5 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5" 
-                      disabled={isLoading}
+                      disabled={isLoading || !supabaseInitialized}
                     >
                       {isLoading ? 'Загрузка...' : 'Войти'}
                     </Button>
+                    
+                    {!supabaseInitialized && (
+                      <div className="flex items-center mt-4 p-3 bg-blue-50 rounded-lg text-blue-600 text-sm">
+                        <Info className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <p>
+                          Для настройки Supabase, создайте файл .env с переменными VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY
+                        </p>
+                      </div>
+                    )}
                   </form>
                 </CardContent>
               </Card>
@@ -194,6 +218,7 @@ const Auth = () => {
                         disabled={isLoading || !supabaseInitialized}
                         className="bg-white/80 border-gray-200 focus:border-purple-400 focus:ring-purple-300"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Минимум 6 символов</p>
                     </div>
                     <Button 
                       type="submit" 
@@ -203,9 +228,12 @@ const Auth = () => {
                       {isLoading ? 'Загрузка...' : 'Зарегистрироваться'}
                     </Button>
                     {!supabaseInitialized && (
-                      <p className="text-xs text-yellow-600 text-center mt-2">
-                        Регистрация недоступна в режиме разработки
-                      </p>
+                      <div className="flex items-center mt-4 p-3 bg-blue-50 rounded-lg text-blue-600 text-sm">
+                        <Info className="h-4 w-4 mr-2 flex-shrink-0" />
+                        <p>
+                          Регистрация недоступна в режиме разработки без настроенного Supabase. Добавьте переменные окружения в файл .env
+                        </p>
+                      </div>
                     )}
                   </form>
                 </CardContent>

@@ -22,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [supabaseInitialized, setSupabaseInitialized] = useState(true);
+  const [supabaseInitialized, setSupabaseInitialized] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,20 +30,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setLoading(true);
         
-        // Check if Supabase is initialized correctly
-        const checkResult = await supabase.auth.getSession();
-        console.log('Supabase initialization check:', checkResult);
+        // Проверяем URL и ключ Supabase перед тем, как пытаться использовать API
+        const url = import.meta.env.VITE_SUPABASE_URL;
+        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
         
-        // Get initial session
-        const { data, error } = checkResult;
-        
-        if (error) {
-          console.error('Error getting session:', error);
+        if (!url || url === 'https://your-supabase-url.supabase.co' || 
+            !key || key === 'your-anon-key') {
+          console.warn('Supabase credentials are not properly configured.');
           setSupabaseInitialized(false);
-        } else {
-          setSupabaseInitialized(true);
-          setSession(data.session);
-          setUser(data.session?.user ?? null);
+          setLoading(false);
+          return;
+        }
+        
+        // Check if Supabase is initialized correctly
+        try {
+          const checkResult = await supabase.auth.getSession();
+          console.log('Supabase initialization check:', checkResult);
+          
+          // Get initial session
+          const { data, error } = checkResult;
+          
+          if (error) {
+            console.error('Error getting session:', error);
+            setSupabaseInitialized(false);
+          } else {
+            setSupabaseInitialized(true);
+            setSession(data.session);
+            setUser(data.session?.user ?? null);
+          }
+        } catch (error) {
+          console.error('Unexpected error during Supabase initialization:', error);
+          setSupabaseInitialized(false);
         }
       } catch (error) {
         console.error('Unexpected error during initialization:', error);
@@ -55,19 +72,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.log('Auth state changed:', _event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
-    );
+    // Set up auth state change listener only if Supabase is initialized
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    if (supabaseInitialized) {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (_event, session) => {
+          console.log('Auth state changed:', _event, session?.user?.id);
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      );
+      subscription = data.subscription;
+    }
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
-  }, []);
+  }, [supabaseInitialized]);
 
   const ensureUserProfile = async (user: User, name?: string): Promise<Profile | null> => {
     if (!user) return null;
@@ -185,7 +209,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, name?: string) => {
     if (!supabaseInitialized) {
-      toast.error('Cannot sign up - Supabase is not properly configured');
+      toast.error('Регистрация невозможна - Supabase не настроен', {
+        description: 'Проверьте переменные окружения в файле .env'
+      });
       return;
     }
 
@@ -206,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Registration error:', error);
         toast.error('Ошибка регистрации', {
-          description: error.message
+          description: error.message || 'Failed to fetch'
         });
         return;
       }
@@ -235,9 +261,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       navigate('/auth');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Unexpected registration error:', error);
-      toast.error('Произошла ошибка при регистрации');
+      toast.error('Произошла ошибка при регистрации', {
+        description: error?.message || 'Неизвестная ошибка'
+      });
     } finally {
       setLoading(false);
     }
