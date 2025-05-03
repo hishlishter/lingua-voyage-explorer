@@ -13,10 +13,10 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   // Show loading indicator while auth state is being determined
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-8 w-8 bg-primary/20 rounded-full mb-4"></div>
-          <div className="h-4 w-24 bg-primary/20 rounded"></div>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
+        <div className="animate-pulse flex flex-col items-center backdrop-blur-sm bg-white/30 p-8 rounded-2xl shadow-xl border border-white/20">
+          <div className="h-12 w-12 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full mb-4"></div>
+          <div className="h-4 w-32 bg-gradient-to-r from-purple-300 to-indigo-300 rounded"></div>
         </div>
       </div>
     );
