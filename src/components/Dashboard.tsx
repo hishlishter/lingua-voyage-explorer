@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import UserProfile from '@/components/UserProfile';
 import ProgressChart from '@/components/ProgressChart';
 import { Profile } from '@/lib/supabase';
@@ -86,6 +86,15 @@ const Dashboard: React.FC<DashboardProps> = ({ profile }) => {
   const totalCompletedTests = React.useMemo(() => {
     return testResults?.filter(result => result.is_perfect_score)?.length || profile.tests_completed || 0;
   }, [testResults, profile.tests_completed]);
+
+  // Логирование для отладки
+  useEffect(() => {
+    console.log('Dashboard: Profile data:', profile);
+    console.log('Dashboard: Course progress data:', courseProgressData);
+    console.log('Dashboard: Test results:', testResults);
+    console.log('Dashboard: Total completed lessons:', totalCompletedLessons);
+    console.log('Dashboard: Total completed tests:', totalCompletedTests);
+  }, [profile, courseProgressData, testResults, totalCompletedLessons, totalCompletedTests]);
   
   return (
     <>

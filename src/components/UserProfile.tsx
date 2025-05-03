@@ -99,11 +99,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
     enabled: !!user?.id,
     staleTime: 300000,
     placeholderData: localProfile || fallbackProfile,
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
+    refetchOnWindowFocus: true, // Изменено на true для обновления данных при фокусе
+    refetchInterval: 60000, // Обновление каждую минуту
     retry: 1
   });
 
+  // Обработчик мутации для обновления аватара пользователя
   const updateAvatarMutation = useMutation({
     mutationFn: async (avatarUrl: string) => {
       if (!user) throw new Error('User not authenticated');
@@ -186,9 +187,16 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
   const profileData = profile || localProfile || fallbackProfile;
 
-  // Используем пропсы, если они переданы, иначе берем данные из профиля
-  const displayTestsCompleted = totalCompletedTests !== undefined ? totalCompletedTests : profileData.tests_completed || 0;
-  const displayLessonsCompleted = totalCompletedLessons !== undefined ? totalCompletedLessons : profileData.courses_completed || 0;
+  // Важно! Используем переданные пропсы с приоритетом
+  const displayTestsCompleted = typeof totalCompletedTests === 'number' ? totalCompletedTests : profileData.tests_completed || 0;
+  const displayLessonsCompleted = typeof totalCompletedLessons === 'number' ? totalCompletedLessons : profileData.courses_completed || 0;
+
+  // Логирование для отладки
+  useEffect(() => {
+    console.log('UserProfile: Props received:', { totalCompletedTests, totalCompletedLessons });
+    console.log('UserProfile: Profile data:', profileData);
+    console.log('UserProfile: Display values:', { displayTestsCompleted, displayLessonsCompleted });
+  }, [totalCompletedTests, totalCompletedLessons, profileData, displayTestsCompleted, displayLessonsCompleted]);
 
   if (isLoading) {
     return (
