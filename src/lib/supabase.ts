@@ -14,6 +14,7 @@ export interface Profile {
   email: string;
   tests_completed: number;
   courses_completed: number;
+  lessons_completed: number; // Added this property
   avatar_url?: string;
 }
 
